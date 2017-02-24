@@ -1,0 +1,6 @@
+--ignore-dir=node_modules
+--ignore-dir=jspm_packages
+--ignore-dir=jspm_packages
+
+# unfortunately there's no way to filter *.js within a folder in ack currently
+--ignore-file=match:.*js
