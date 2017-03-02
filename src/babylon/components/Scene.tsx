@@ -1,5 +1,6 @@
 import React from 'react';
 import BABYLON from 'babylonjs';
+import {Cuckoo, DataType} from '../tools/data/CuckooHash';
 import DatasetParser from '../tools/data/DatasetParser';
 import fragmentShader from '../shaders/dvr.fragment.glsl';
 import vertexShader from '../shaders/dvr.vertex.glsl';
@@ -107,9 +108,24 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
     frontplane.material = frontplaneMaterial;
 
     // Textures + Framebuffers
+
+    // Segmentation
     const cubeTex = new BABYLON.Texture('datasets/e2198.raw', this.scene, true, false,
       BABYLON.Texture.NEAREST_SAMPLINGMODE, undefined, undefined, undefined, false, undefined, DatasetParser);
 
+    // Selected Segment Hash Texture
+    const selectionHash = new Cuckoo(this.scene, DataType.UInt64, 'identity', 'fnv1a');
+    for (let i = 500; i < 1000; ++i) {
+      selectionHash.set(i, 0);
+    }
+    for (let i = 3000; i < 3500; ++i) {
+      selectionHash.set(i, 0);
+    }
+    /*for (let i = 0; i < 35000; ++i) {
+       selectionHash.set(i, 0);
+    }*/
+
+    // RTT Example - final color, segmentID and segmentDepth
     this.gl.activeTexture(this.gl.TEXTURE0);
     const segColorTex = new BABYLON.RenderTargetTexture('segColorTex',
       { width: this.canvas.width, height: this.canvas.height }, this.scene, false, true,
@@ -139,6 +155,7 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
 
     this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
 
+    // Can't use glClear because of integer buffer, have to write own clear function
     segColorTex.onClear = (engine: BABYLON.Engine) => {
       this.gl.clearBufferfv(this.gl.COLOR, 0, [0.2, 0.2, 0.3, 1.0]); // segColorTex (Segment Color)
       this.gl.clearBufferuiv(this.gl.COLOR, 1, [0, 0, 0, 0]);        // segIDTex (Segment ID)
@@ -151,7 +168,10 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
     // Uniforms
     frontplaneMaterial.setVector3('distortionCorrection', distort);
     frontplaneMaterial.setFloat('fovy', this.camera.fov);
+    frontplaneMaterial.setVector2('seeds', selectionHash.seeds);
+    frontplaneMaterial.setVector3('sizes', selectionHash.sizes);
     frontplaneMaterial.setTexture('cubeTex', cubeTex);
+    frontplaneMaterial.setTexture('selectionTex', selectionHash.texture);
 
     // Post Processes
     shaderStore.composePixelShader = composeFragmentShader.trim();

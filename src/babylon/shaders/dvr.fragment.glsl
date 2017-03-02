@@ -1,8 +1,12 @@
 precision highp float;
+precision highp usampler2D;
 precision highp usampler3D;
 
+uniform usampler2D selectionTex;
 uniform usampler3D cubeTex;
 uniform float fovy;
+uniform vec2 seeds; // TODO: should be uvec2
+uniform vec3 sizes; // TODO: should be uvec3
 
 in vec3 frontPos;
 in vec3 rayDir;
@@ -20,6 +24,58 @@ const float SQRT2INV = 0.70710678118;
 const float SQRT3INV = 0.57735026919;
 
 const float STEPSIZE = 0.001;
+
+const uint _murmur3_32_c1 = uint(0xcc9e2d51);
+const uint _murmur3_32_c2 = uint(0x1b873593);
+const uint _murmur3_32_n = uint(0xe6546b64);
+const uint _murmur3_32_mix1 = uint(0x85ebca6b);
+const uint _murmur3_32_mix2 = uint(0xc2b2ae35);
+
+const uint _fnv_offset_32 = uint(0x811c9dc5);
+const uint _fnv_prime_32 = uint(16777619);
+
+uint hashCombine(uint m, uint n) {
+  return m ^ (n + uint(0x517cc1b7) + (n << 6) + (n >> 2));
+}
+
+uint rol(uint m, uint n) {
+  return (m << n) | (m >> (uint(32) - n));
+}
+
+uint murmur3_32(uint key, uint seed) {
+  uint k = key;
+  k *= _murmur3_32_c1;
+  k = rol(k, uint(15));
+  k *= _murmur3_32_c2;
+
+  uint h = seed;
+  h ^= k;
+  h = rol(h, uint(13));
+  h = h * uint(5) + _murmur3_32_n;
+
+  h ^= uint(4);
+  h ^= h >> uint(16);
+  h *= _murmur3_32_mix1;
+  h ^= h >> uint(13);
+  h *= _murmur3_32_mix2;
+  h ^= h >> uint(16);
+
+  return h;
+}
+
+uint fnv1a_32(uint key, uint seed) {
+  uint h = seed;
+  h ^= (key & uint(0xFF000000)) >> 24;
+  h *= _fnv_prime_32;
+  h ^= (key & uint(0x00FF0000)) >> 16;
+  h *= _fnv_prime_32;
+  h ^= (key & uint(0x0000FF00)) >> 8;
+  h *= _fnv_prime_32;
+  h ^= key & uint(0x000000FF);
+  h *= _fnv_prime_32;
+
+  return h;
+}
 
 // good enough for now, don't use for serious stuff (beware lowp)
 float rand(vec2 co){
@@ -50,22 +106,29 @@ vec2 iRayBox(vec3 pos, vec3 dir) {
 }
 
 bool isVisible(uint segID) {
+  if (segID == uint(0)) {
+    return false;
+  }
+  uint hi = uint(0);
 
-  if (mod(float(segID), 20.0) == 1.0)
-    return true;
+  uint hashPos = hashCombine(segID, hi) % uint(sizes.z);
+  uint x = hashPos % uint(sizes.x);
+  uint y = hashPos / uint(sizes.x);
 
-  if (segID > uint(500) && segID < uint(1000)) {
+  uvec2 texel = texelFetch(selectionTex, ivec2(x, y), 0).rg;
+  if (texel.r == segID && texel.g == hi) {
     return true;
   }
 
-  if (segID > uint(13000) && segID < uint(13500)) {
+  hashPos = hashCombine(fnv1a_32(segID, uint(seeds.y)), fnv1a_32(hi, uint(seeds.y))) % uint(sizes.z);
+  x = hashPos % uint(sizes.x);
+  y = hashPos / uint(sizes.x);
+
+  texel = texelFetch(selectionTex, ivec2(x, y), 0).rg;
+  if (texel.r == segID && texel.g == hi) {
     return true;
   }
 
-  if (segID > uint(23000) && segID < uint(23500)) {
-    return true;
-  }
-  return false;
 }
 
 uint getSegID( vec3 texCoord )
@@ -273,12 +336,15 @@ void main() {
   vec3 pos = frontPos;
   vec3 dir = normalize(rayDir);
 
+  // Calculate multipliers 't' (pos + t * dir) for entry and exit points, stored in rayStartStop.x and rayStartStop.y
   vec2 rayStartStop = iRayBox(pos, dir);
 
-  rayStartStop.x = max(0.0, rayStartStop.x);
-
+  // Make sure we don't start behind the camera (negative t)
+  rayStartStop.x = max(0.0, rayStartStop.x) + 0.0001;
   pos += rayStartStop.x * dir;
-  if (isInsideBox(pos, vec3(-0.00001), vec3(1.00001)) == false) {
+
+  // Terminate if ray never entered the box
+  if (isInsideBox(pos, vec3(0.0), vec3(1.0)) == false) {
     return;
   }
 
@@ -286,6 +352,7 @@ void main() {
   uint visibleSegID = uint(0);
   vec3 visiblePos = frontPos;
 
+  // TODO: Set better light(s)
   vec3 lightDir = normalize(-dir + cross(dir, vec3(0.0, 1.0, 0.0)));
   vec4 color = ZERO4;
 
@@ -297,7 +364,7 @@ void main() {
       vec3 normal = normalize(calcGradient(pos, 1.0 * curStepsize));
       vec3 camDir = -dir;
       //vec3 basecol = calcSmoothColor(pos, 1.0 / 256.0).rgb;
-    vec3 basecol = segColor(segID).rgb;
+      vec3 basecol = segColor(segID).rgb;
       color.rgb = 0.07 * basecol * 1.0; //occlusion(pos, 2.0 * curStepsize);
       //if (!inShadow(pos, lightDir)) {
         color.rgb = phongBlinn(normal, camDir, lightDir, 0.07 * basecol, 1.0*basecol, vec3(0.5), 16.0);
@@ -307,11 +374,14 @@ void main() {
 
       visibleSegID = segID;
       visiblePos = pos;
+
+      // Break Condition: Hit a visible segment
       break;
     }
     pos += curStepsize * dir;
 
-    if (isInsideBox(pos, vec3(-0.00001), vec3(1.00001)) == false) {
+    // Break Condition: Left the dataset bounding box
+    if (isInsideBox(pos, vec3(0.0), vec3(1.0)) == false) {
       break;
     }
   }

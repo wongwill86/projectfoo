@@ -1,7 +1,6 @@
 {
   "typescript.tsdk": "./node_modules/typescript/lib",
   "editor.tabSize": 2,
-  "editor.wordWrap": true,
-  "editor.wrappingColumn": 120,
+  "editor.wordWrap": "on",
   "editor.rulers": [120]
 }
