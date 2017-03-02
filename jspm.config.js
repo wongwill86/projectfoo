@@ -72,6 +72,9 @@ SystemJS.config({
         },
         "*.ts": {
           "loader": "plugin-typescript"
+        },
+        "*.glsl": {
+          "loader": "text"
         }
       }
     }

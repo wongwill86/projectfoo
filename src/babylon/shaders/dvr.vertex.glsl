@@ -1,4 +1,3 @@
-const vertexShader: string = `
 precision highp float;
 
 uniform mat4 view;
@@ -31,5 +30,4 @@ void main() {
 
     // Scale the billboard plane to exactly cover the screen [-1, 1]
     gl_Position = vec4(ndcXY, 0.0, 1.0);
-}`;
-export default vertexShader;
+}

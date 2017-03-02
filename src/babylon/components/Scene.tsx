@@ -1,8 +1,8 @@
 import * as React from 'react';
 import * as BABYLON from 'babylonjs';
 import DatasetParser from '../tools/data/DatasetParser';
-import fragmentShader from '../shaders/dvr.fragment.fx';
-import vertexShader from '../shaders/dvr.vertex.fx';
+import fragmentShader from '../shaders/dvr.fragment.glsl';
+import vertexShader from '../shaders/dvr.vertex.glsl';
 
 export interface SceneProps {
   width: number;

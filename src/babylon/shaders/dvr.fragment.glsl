@@ -1,4 +1,3 @@
-export const fragmentShader: string = `
 precision highp float;
 precision highp usampler3D;
 
@@ -348,7 +347,5 @@ void main() {
     }
   }
 
-  glFragColor = color;
+  glFragColor = vec4(0.0);
 }
-`;
-export default fragmentShader;

@@ -79,6 +79,7 @@
       "react-router-redux": "npm:react-router-redux@^4.0.7",
       "redux-observable": "npm:redux-observable@^0.13.0",
       "reselect": "npm:reselect@^2.5.4",
+      "text": "github:systemjs/plugin-text@^0.0.9",
       "tslib": "npm:tslib@^1.5.0",
       "whatwg-fetch": "npm:whatwg-fetch@^1.1.1"
     },

@@ -10,3 +10,5 @@ function! SrcJSFilter(params)
 				\ a:params['nerdtree'].root.path.str(), '', 'g') =~ g:SrcJSRegex
 endfunction
 call NERDTreeAddPathFilter('SrcJSFilter')
+
+set cc=120
