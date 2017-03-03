@@ -20,14 +20,10 @@ void main() {
     rayDir = normalize(unproj(vec3(ndcXY, 1.0)) - unproj(vec3(ndcXY, -1.0)));
     rayDir *= distortionCorrection;
 
-    // not sure, 0.5 makes it the same size as in the 
-    // Two-Pass Render Version (our reference)
-    frontPos = 0.5 * unproj(vec3(view[3][0], view[3][1], 0.0));
-
-    // fixes distortion caused by dataset and voxel size
-    frontPos *= distortionCorrection;
-    // camera rotation around center of cube
-    frontPos += 0.5;
+    frontPos = 0.5 * unproj(vec3(view[3][0], view[3][1], 0.0)); // not sure, 0.5 makes it the same size as in the
+                                                                // Two-Pass Render Version (our reference)
+    frontPos *= distortionCorrection;                           // fixes distortion caused by dataset and voxel size
+    frontPos += 0.5;                                            // camera rotation around center of cube
 
     // Scale the billboard plane to exactly cover the screen [-1, 1]
     gl_Position = vec4(ndcXY, 0.0, 1.0);
