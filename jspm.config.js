@@ -9,39 +9,7 @@ SystemJS.config({
   },
   devConfig: {
     "map": {
-      "plugin-typescript": "github:frankwallis/plugin-typescript@5.3.3",
-      "css": "github:systemjs/plugin-css@0.1.32",
-      "systemjs-hot-reloader": "github:alexisvincent/systemjs-hot-reloader@0.6.0",
-      "typescript": "npm:typescript@2.2.1"
-    },
-    "packages": {
-      "npm:typescript@2.2.1": {
-        "map": {
-          "source-map-support": "npm:source-map-support@0.4.11"
-        }
-      },
-      "npm:source-map-support@0.4.11": {
-        "map": {
-          "source-map": "npm:source-map@0.5.6"
-        }
-      },
-      "github:frankwallis/plugin-typescript@5.3.3": {
-        "map": {
-          "typescript": "npm:typescript@2.2.1"
-        }
-      },
-      "github:alexisvincent/systemjs-hot-reloader@0.6.0": {
-        "map": {
-          "debug": "npm:debug@2.6.1",
-          "weakee": "npm:weakee@1.0.0",
-          "socket.io-client": "github:socketio/socket.io-client@1.7.2"
-        }
-      },
-      "npm:debug@2.6.1": {
-        "map": {
-          "ms": "npm:ms@0.7.2"
-        }
-      }
+      "css": "github:systemjs/plugin-css@0.1.32"
     }
   },
   transpiler: "plugin-typescript",
@@ -106,6 +74,7 @@ SystemJS.config({
     "net": "npm:jspm-nodelibs-net@0.2.0",
     "os": "npm:jspm-nodelibs-os@0.2.0",
     "path": "npm:jspm-nodelibs-path@0.2.1",
+    "plugin-typescript": "github:frankwallis/plugin-typescript@7.0.5",
     "process": "npm:jspm-nodelibs-process@0.2.0",
     "react": "npm:react@15.4.2",
     "react-dom": "npm:react-dom@15.4.2",
@@ -119,7 +88,10 @@ SystemJS.config({
     "rxjs": "npm:rxjs@5.2.0",
     "stream": "npm:jspm-nodelibs-stream@0.2.0",
     "string_decoder": "npm:jspm-nodelibs-string_decoder@0.2.0",
+    "systemjs-hot-reloader": "npm:systemjs-hot-reloader@1.1.0",
+    "text": "github:systemjs/plugin-text@0.0.9",
     "tslib": "npm:tslib@1.6.0",
+    "typescript": "npm:typescript@2.1.4",
     "url": "npm:jspm-nodelibs-url@0.2.0",
     "util": "npm:jspm-nodelibs-util@0.2.1",
     "vm": "npm:jspm-nodelibs-vm@0.2.0",
@@ -462,13 +434,6 @@ SystemJS.config({
         "loose-envify": "npm:loose-envify@1.3.1"
       }
     },
-    "npm:react@15.4.2": {
-      "map": {
-        "object-assign": "npm:object-assign@4.1.1",
-        "fbjs": "npm:fbjs@0.8.9",
-        "loose-envify": "npm:loose-envify@1.3.1"
-      }
-    },
     "npm:fbjs@0.8.9": {
       "map": {
         "object-assign": "npm:object-assign@4.1.1",
@@ -487,6 +452,28 @@ SystemJS.config({
         "readable-stream": "npm:readable-stream@2.2.3",
         "to-arraybuffer": "npm:to-arraybuffer@1.0.1",
         "xtend": "npm:xtend@4.0.1"
+      }
+    },
+    "npm:systemjs-hot-reloader@1.1.0": {
+      "map": {
+        "systemjs-hmr": "npm:systemjs-hmr@2.0.8"
+      }
+    },
+    "npm:source-map-support@0.4.11": {
+      "map": {
+        "source-map": "npm:source-map@0.5.6"
+      }
+    },
+    "npm:typescript@2.1.4": {
+      "map": {
+        "source-map-support": "npm:source-map-support@0.4.11"
+      }
+    },
+    "npm:react@15.4.2": {
+      "map": {
+        "object-assign": "npm:object-assign@4.1.1",
+        "loose-envify": "npm:loose-envify@1.3.1",
+        "fbjs": "npm:fbjs@0.8.9"
       }
     }
   }

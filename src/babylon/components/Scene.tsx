@@ -1,5 +1,5 @@
-import * as React from 'react';
-import * as BABYLON from 'babylonjs';
+import React from 'react';
+import BABYLON from 'babylonjs';
 import DatasetParser from '../tools/data/DatasetParser';
 import fragmentShader from '../shaders/dvr.fragment.glsl';
 import vertexShader from '../shaders/dvr.vertex.glsl';

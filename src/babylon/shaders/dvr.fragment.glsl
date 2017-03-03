@@ -347,5 +347,5 @@ void main() {
     }
   }
 
-  glFragColor = vec4(0.0);
+  glFragColor = color;
 }
