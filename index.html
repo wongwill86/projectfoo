@@ -34,13 +34,12 @@
   <script src="temp/vendor.dev.js"></script>
   <script>
 
-    // hot-reload config
-    System.import('systemjs-hot-reloader').then((HotReloader) => {
-      // if you're running server on custom port please remember to update below
-      new HotReloader.default('http://localhost:3000');
-    });
     System.trace = true;
-    System.import('src/app');
+    // hot-reload config
+    System.import('systemjs-hot-reloader').then((connect) => {
+      connect({host:window.location});
+      System.import('src/app');
+    });
     // load main module of your app with SystemJS
   </script>
   <!-- loading-app:end -->

@@ -21,7 +21,7 @@
     "pretty": true,
     "declaration": false,
     "isolatedModules": false,
-    "module": "commonjs",
+    "module": "system",
     "moduleResolution": "node",
     "noResolve": false,
     "outDir": "../out",

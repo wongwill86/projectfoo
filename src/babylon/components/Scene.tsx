@@ -1,8 +1,9 @@
-import * as React from 'react';
-import * as BABYLON from 'babylonjs';
+import React from 'react';
+import BABYLON from 'babylonjs';
 import DatasetParser from '../tools/data/DatasetParser';
-import fragmentShader from '../shaders/dvr.fragment.fx';
-import vertexShader from '../shaders/dvr.vertex.fx';
+import fragmentShader from '../shaders/dvr.fragment.glsl';
+import vertexShader from '../shaders/dvr.vertex.glsl';
+import composeFragmentShader from '../shaders/compose.fragment.glsl';
 
 export interface SceneProps {
   width: number;
@@ -56,7 +57,6 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
       return;
     }
 
-    BABYLON.Engine.ShadersRepository = 'src/babylon/shaders/';
     this.engine = new BABYLON.Engine(canvas, options.antialias, options, false);
     this.materials = new Map<String, BABYLON.ShaderMaterial>();
     this.gl = this.engine._gl as WebGL2RenderingContext;
@@ -154,6 +154,7 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
     frontplaneMaterial.setTexture('cubeTex', cubeTex);
 
     // Post Processes
+    shaderStore.composePixelShader = composeFragmentShader.trim();
     const postProcess = new BABYLON.PostProcess('compose', 'compose', [], ['segColorTex', 'segIDTex', 'segDepthTex'],
       1.0, this.camera, BABYLON.Texture.NEAREST_SAMPLINGMODE, this.engine, true);
 

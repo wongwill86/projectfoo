@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 import { PageHero } from '../../components/page-hero';
 import { PageSection } from '../../components/page-section';
 import { Link } from 'react-router';
