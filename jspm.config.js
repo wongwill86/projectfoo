@@ -9,7 +9,15 @@ SystemJS.config({
   },
   devConfig: {
     "map": {
-      "css": "github:systemjs/plugin-css@0.1.32"
+      "css": "github:systemjs/plugin-css@0.1.32",
+      "systemjs-hot-reloader": "npm:systemjs-hot-reloader@1.1.0"
+    },
+    "packages": {
+      "npm:systemjs-hot-reloader@1.1.0": {
+        "map": {
+          "systemjs-hmr": "npm:systemjs-hmr@2.0.8"
+        }
+      }
     }
   },
   transpiler: "plugin-typescript",
@@ -46,6 +54,9 @@ SystemJS.config({
         }
       }
     }
+  },
+  map: {
+    "whatwg-fetch": "npm:whatwg-fetch@1.1.1"
   }
 });
 
@@ -88,14 +99,12 @@ SystemJS.config({
     "rxjs": "npm:rxjs@5.2.0",
     "stream": "npm:jspm-nodelibs-stream@0.2.0",
     "string_decoder": "npm:jspm-nodelibs-string_decoder@0.2.0",
-    "systemjs-hot-reloader": "npm:systemjs-hot-reloader@1.1.0",
     "text": "github:systemjs/plugin-text@0.0.9",
     "tslib": "npm:tslib@1.6.0",
     "typescript": "npm:typescript@2.1.4",
     "url": "npm:jspm-nodelibs-url@0.2.0",
     "util": "npm:jspm-nodelibs-util@0.2.1",
     "vm": "npm:jspm-nodelibs-vm@0.2.0",
-    "whatwg-fetch": "npm:whatwg-fetch@1.1.1",
     "zlib": "npm:jspm-nodelibs-zlib@0.2.2"
   },
   packages: {
@@ -365,7 +374,7 @@ SystemJS.config({
     "npm:isomorphic-fetch@2.2.1": {
       "map": {
         "node-fetch": "npm:node-fetch@1.6.3",
-        "whatwg-fetch": "npm:whatwg-fetch@1.1.1"
+        "whatwg-fetch": "npm:whatwg-fetch@2.0.3"
       }
     },
     "npm:node-fetch@1.6.3": {
@@ -452,11 +461,6 @@ SystemJS.config({
         "readable-stream": "npm:readable-stream@2.2.3",
         "to-arraybuffer": "npm:to-arraybuffer@1.0.1",
         "xtend": "npm:xtend@4.0.1"
-      }
-    },
-    "npm:systemjs-hot-reloader@1.1.0": {
-      "map": {
-        "systemjs-hmr": "npm:systemjs-hmr@2.0.8"
       }
     },
     "npm:source-map-support@0.4.11": {

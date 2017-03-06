@@ -134,6 +134,10 @@
           "process": "@empty"
         }
       },
+      "npm:tslib@1.6.0": {
+        "main": "tslib.es6.js",
+        "format": "esm"
+      },
       "npm:typescript@2.1.4": {
         "browser": {},
         "map": {
