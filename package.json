@@ -10,7 +10,7 @@
   "main": "server.js",
   "scripts": {
     "clean": "shx rm -rf dist node_modules jspm_packages",
-    "init": "jspm install && npm run build:debug",
+    "init": "jspm install && npm run dev:bundle",
     "dev": "jspm-hmr -FO",
     "dev:bundle": "node scripts/build.js dev",
     "dev:unbundle": "shx rm temp/vendor.dev.js",
@@ -31,8 +31,7 @@
     "prepush": "npm run precommit && npm test",
     "deploy:init": "node scripts/deploy.js init",
     "deploy": "cd dist && git checkout gh-pages && git add --all && git commit -m \"New Release\" && git push",
-    "update": "jspm update",
-    "version": "jspm --version"
+    "jspm:update": "jspm update"
   },
   "dependencies": {},
   "devDependencies": {
@@ -80,13 +79,12 @@
       "react-router-redux": "npm:react-router-redux@^4.0.7",
       "redux-observable": "npm:redux-observable@^0.13.0",
       "reselect": "npm:reselect@^2.5.4",
-      "systemjs-hot-reloader": "npm:systemjs-hot-reloader@^1.1.0",
       "text": "github:systemjs/plugin-text@^0.0.9",
-      "tslib": "npm:tslib@^1.5.0",
-      "whatwg-fetch": "npm:whatwg-fetch@^1.1.1"
+      "tslib": "npm:tslib@^1.5.0"
     },
     "devDependencies": {
-      "css": "github:systemjs/plugin-css@^0.1.32"
+      "css": "github:systemjs/plugin-css@^0.1.32",
+      "systemjs-hot-reloader": "npm:systemjs-hot-reloader@^1.1.0"
     },
     "peerDependencies": {
       "assert": "npm:jspm-nodelibs-assert@^0.2.0",
