@@ -10,7 +10,7 @@
   "main": "server.js",
   "scripts": {
     "clean": "shx rm -rf dist node_modules jspm_packages",
-    "init": "jspm install && npm run dev:bundle",
+    "init": "npm run jspm:install && npm run dev:bundle",
     "dev": "jspm-hmr -FO",
     "dev:bundle": "node scripts/build.js dev",
     "dev:unbundle": "shx rm temp/vendor.dev.js",
@@ -31,6 +31,7 @@
     "prepush": "npm run precommit && npm test",
     "deploy:init": "node scripts/deploy.js init",
     "deploy": "cd dist && git checkout gh-pages && git add --all && git commit -m \"New Release\" && git push",
+    "jspm:install": "jspm install",
     "jspm:update": "jspm update"
   },
   "dependencies": {},

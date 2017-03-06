@@ -21,13 +21,13 @@ git clone https://github.com/wongwill86/projectfoo
 cd projectfoo
 
 // Install dependencies
-npm install
+yarn install
 
 // Initiate JSPM and dev-bundle
 npm run init
 
 // Run development server with HMR
-npm start
+npm run dev
 ```
 
 *NOTE* We are using a fork of babylonjs that has new experimental WebGL2 features. See [wongwill86/Babylon.js](https://github.com/wongwill86/Babylon.js/tree/projectfoo)
@@ -51,6 +51,11 @@ rm $project_directory/projectfoo/jspm_packages/npm/babylonjs@2.5.0/babylon.js
 ln -s $project_directory/Babylon.js/dist/preview\ release/babylon.js $project_directory/projectfoo/jspm_packages/npm/babylonjs@2.5.0/babylon.js 
 rm $project_directory/projectfoo/node_modules/@types/babylonjs/index.d.ts 
 ln -s $project_directory/Babylon.js/dist/preview\ release/babylon.module.d.ts $project_directory/projectfoo/node_modules/@types/babylonjs/index.d.ts
+
+// rebundle app with custom babylonjs
+cd $project_directory/projectfoo
+npm run dev:bundle
+
 ```
 
 ---
