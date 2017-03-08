@@ -1,6 +1,9 @@
 import React from 'react';
 import BABYLON from 'babylonjs';
 import DatasetParser from '../tools/data/DatasetParser';
+import R16TextureParser from '../tools/data/R16TextureParser';
+import RGBA8x512TextureParser from '../tools/data/RGBA8x512TextureParser';
+import RGBA8x4TextureParser from '../tools/data/RGBA8x4TextureParser';
 import fragmentShader from '../shaders/dvr.fragment.glsl';
 import vertexShader from '../shaders/dvr.vertex.glsl';
 import composeFragmentShader from '../shaders/compose.fragment.glsl';
@@ -29,8 +32,8 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
   public gl: WebGL2RenderingContext;
 
   private dataset = {
-    dimensions: new BABYLON.Vector3(256, 256, 256),
-    resolution: new BABYLON.Vector3(16.5, 16.5, 23.0),
+    dimensions: new BABYLON.Vector3(4096, 4096, 4096),
+    resolution: new BABYLON.Vector3(6, 6, 30.0),
   };
 
   public updateCamera(): void {
@@ -107,6 +110,15 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
     frontplane.material = frontplaneMaterial;
 
     // Textures + Framebuffers
+    const voxelCache = new BABYLON.Texture('datasets/Volume-cubey.512x512x512.uint16.raw', this.scene,
+      true, false, BABYLON.Texture.NEAREST_SAMPLINGMODE, undefined, undefined, undefined, false, undefined,
+      R16TextureParser);
+    const pageTable = new BABYLON.Texture('datasets/Volume-cubey.512x512x512.uint16.pagetable.16x32blk.raw',
+      this.scene, true, false, BABYLON.Texture.NEAREST_SAMPLINGMODE, undefined, undefined, undefined, false, undefined,
+      RGBA8x512TextureParser);
+    const pageDirectory = new BABYLON.Texture('datasets/Volume-cubey.512x512x512.uint16.pagedirectory.4x1.raw',
+      this.scene, true, false, BABYLON.Texture.NEAREST_SAMPLINGMODE, undefined, undefined, undefined, false, undefined,
+      RGBA8x4TextureParser);
     const cubeTex = new BABYLON.Texture('datasets/e2198.raw', this.scene, true, false,
       BABYLON.Texture.NEAREST_SAMPLINGMODE, undefined, undefined, undefined, false, undefined, DatasetParser);
 
@@ -152,6 +164,9 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
     frontplaneMaterial.setVector3('distortionCorrection', distort);
     frontplaneMaterial.setFloat('fovy', this.camera.fov);
     frontplaneMaterial.setTexture('cubeTex', cubeTex);
+    frontplaneMaterial.setTexture('voxelCache', voxelCache);
+    frontplaneMaterial.setTexture('pageTable', pageTable);
+    frontplaneMaterial.setTexture('pageDirectory', pageDirectory);
 
     // Post Processes
     shaderStore.composePixelShader = composeFragmentShader.trim();
@@ -163,6 +178,8 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
       effect.setTexture('segIDTex', segIDTex);
       effect.setTexture('segDepthTex', depthTex);
     };
+
+
   }
 
   public componentWillUnmount() {
@@ -172,6 +189,7 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
         this.engine.scenes[0].dispose();
       }
     }
+    this.engine.wipeCaches();
     this.engine.dispose();
   }
 
