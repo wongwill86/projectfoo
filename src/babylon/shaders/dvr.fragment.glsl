@@ -14,7 +14,7 @@ in vec3 rayDir;
 //layout(location = 0) out vec4 glFragColor;
 layout(location = 1) out uint glFragSegID;
 layout(location = 2) out vec4 glFragDepth;
-layout(location = 3) out vec4 glCacheMiss;
+layout(location = 3) out uvec4 glCacheState;
 
 const vec3 ZERO3 = vec3(0.0);
 const vec4 ZERO4 = vec4(0.0);
@@ -42,7 +42,6 @@ const float TOTAL_SIZE_VOXEL_TABLE = BLOCK_SIZE_VOXEL * TABLE_SIZE_PAGE;
 const uint EMPTY = uint(0);
 const uint MAPPED = uint(1);
 const uint NOT_MAPPED = uint(2);
-
 
 const uint PAGE_DIRECTORY = uint(4);
 const uint PAGE_TABLE = uint(8);
@@ -127,7 +126,7 @@ uvec4 getVoxelEntry(vec3 offset, vec3 positionVoxel) {
 /*
  * Lookup the segment id for a position
  *
- * @param position The actual raw position in the dataset we are looking at object space: (0,1)
+ * @param positionVoxel The position to look up in dataset voxel space
  *
  * @return SegmentID and Mapping State(uvec4): TODO allow 64 bit segmentids
  *                        R - SegmentID (32 upper bits)
@@ -135,8 +134,7 @@ uvec4 getVoxelEntry(vec3 offset, vec3 positionVoxel) {
  *                        B - Flag (EMPTY/MAPPED/NOT_MAPPED)
  *                        A - Level (PAGE_DIRECTORY/PAGE_TABLE/VOXEL_BLOCK)
  */
-uvec4 getSegIDMapping(vec3 position) {
-  vec3 positionVoxel = getVoxelCoordinates(position);
+uvec4 getSegIDMapping(vec3 positionVoxel) {
 
   uvec4 entryDirectory = getDirectoryEntry(positionVoxel);
   if (entryDirectory.a != MAPPED) {
@@ -164,7 +162,8 @@ uvec4 getSegIDMapping(vec3 position) {
  * @return SegmentID (
  */
 uint getSegID(vec3 position) {
-  return getSegIDMapping(position).g; 
+  vec3 positionVoxel = getVoxelCoordinates(position);
+  return getSegIDMapping(positionVoxel).g; 
 }
 
 // --------------------- END Voxel Lookup ----------------------------
@@ -431,17 +430,25 @@ void main() {
 
   uint segID = uint(0);
   uint visibleSegID = uint(0);
+  uvec4 cacheState = uvec4(0);
   vec3 visiblePos = frontPos;
 
   vec3 lightDir = normalize(-dir + cross(dir, vec3(0.0, 1.0, 0.0)));
   vec4 color = ZERO4;
 
-
   while (true) {
     float curStepsize = calcStepsize(distance(pos, frontPos));
 
-    uvec4 segIDMapping = getSegIDMapping(pos);
+    vec3 positionVoxel = getVoxelCoordinates(pos);
+
+    uvec4 segIDMapping = getSegIDMapping(positionVoxel);
     if (segIDMapping.b != MAPPED) {
+      // TODO jump appropriate distance or try going up 1 mip level instead of breaking out
+      if (segIDMapping.b == NOT_MAPPED) {
+        cacheState.rgb = uvec3(positionVoxel);
+        cacheState.a = segIDMapping.a;
+      }
+
       if (DEBUG) {
         if (segIDMapping.a == PAGE_DIRECTORY) {
           color = RED;
@@ -484,5 +491,5 @@ void main() {
   glFragColor = color;
   glFragSegID = visibleSegID;
   glFragDepth = vec4(distance(visiblePos, frontPos));
-
+  glCacheState = cacheState;
 }

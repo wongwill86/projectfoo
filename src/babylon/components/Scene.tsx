@@ -133,6 +133,10 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
     this.gl.activeTexture(this.gl.TEXTURE2);
     const depthTex = this.createScreenTexture('segDepthTex', this.gl.RGBA32F, this.gl.RGBA, this.gl.FLOAT);
 
+    this.gl.activeTexture(this.gl.TEXTURE3);
+    const cacheStateTex = this.createScreenTexture(
+      'cacheStateTex', this.gl.RGBA32UI, this.gl.RGBA_INTEGER, this.gl.UNSIGNED_INT);
+
     this.gl.activeTexture(this.gl.TEXTURE0);
 
     const fb = segColorTex._texture._framebuffer;
@@ -142,8 +146,11 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
       segIDTex._texture, 0);
     this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT2, this.gl.TEXTURE_2D,
       depthTex._texture, 0);
+    this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT3, this.gl.TEXTURE_2D,
+      cacheStateTex._texture, 0);
 
-    this.gl.drawBuffers([this.gl.COLOR_ATTACHMENT0, this.gl.COLOR_ATTACHMENT1, this.gl.COLOR_ATTACHMENT2]);
+    this.gl.drawBuffers([
+      this.gl.COLOR_ATTACHMENT0, this.gl.COLOR_ATTACHMENT1, this.gl.COLOR_ATTACHMENT2, this.gl.COLOR_ATTACHMENT3]);
 
     if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !== this.gl.FRAMEBUFFER_COMPLETE) {
       console.error('Framebuffer creation failed!');
@@ -155,6 +162,7 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
       this.gl.clearBufferfv(this.gl.COLOR, 0, [0.2, 0.2, 0.3, 1.0]); // segColorTex (Segment Color)
       this.gl.clearBufferuiv(this.gl.COLOR, 1, [0, 0, 0, 0]);        // segIDTex (Segment ID)
       this.gl.clearBufferfv(this.gl.COLOR, 2, [0.0, 0.0, 0.0, 0.0]); // depthTex (Segment Depth)
+      this.gl.clearBufferuiv(this.gl.COLOR, 3, [0, 0, 0, 0]); // cacheStateTex (miss/empty)
     };
 
     this.scene.customRenderTargets.push(segColorTex);
@@ -170,13 +178,15 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
 
     // Post Processes
     shaderStore.composePixelShader = composeFragmentShader.trim();
-    const postProcess = new BABYLON.PostProcess('compose', 'compose', [], ['segColorTex', 'segIDTex', 'segDepthTex'],
+    const postProcess = new BABYLON.PostProcess('compose', 'compose', [],
+                                                ['segColorTex', 'segIDTex', 'segDepthTex', 'cacheStateTex'],
       1.0, this.camera, BABYLON.Texture.NEAREST_SAMPLINGMODE, this.engine, true);
 
     postProcess.onApply = (effect) => {
       effect.setTexture('segColorTex', segColorTex);
       effect.setTexture('segIDTex', segIDTex);
       effect.setTexture('segDepthTex', depthTex);
+      effect.setTexture('cacheStateTex', cacheStateTex);
     };
 
 
