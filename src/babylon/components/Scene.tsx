@@ -1,6 +1,9 @@
 import React from 'react';
 import BABYLON from 'babylonjs';
 import DatasetParser from '../tools/data/DatasetParser';
+import R16TextureParser from '../tools/data/R16TextureParser';
+import RGBA8x512TextureParser from '../tools/data/RGBA8x512TextureParser';
+import RGBA8x4TextureParser from '../tools/data/RGBA8x4TextureParser';
 import fragmentShader from '../shaders/dvr.fragment.glsl';
 import vertexShader from '../shaders/dvr.vertex.glsl';
 import composeFragmentShader from '../shaders/compose.fragment.glsl';
@@ -29,8 +32,8 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
   public gl: WebGL2RenderingContext;
 
   private dataset = {
-    dimensions: new BABYLON.Vector3(256, 256, 256),
-    resolution: new BABYLON.Vector3(16.5, 16.5, 23.0),
+    dimensions: new BABYLON.Vector3(4096, 4096, 4096),
+    resolution: new BABYLON.Vector3(6, 6, 30.0),
   };
 
   public updateCamera(): void {
@@ -107,6 +110,15 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
     frontplane.material = frontplaneMaterial;
 
     // Textures + Framebuffers
+    const voxelCache = new BABYLON.Texture('datasets/Volume-cubey.512x512x512.uint16.raw', this.scene,
+      true, false, BABYLON.Texture.NEAREST_SAMPLINGMODE, undefined, undefined, undefined, false, undefined,
+      R16TextureParser);
+    const pageTable = new BABYLON.Texture('datasets/Volume-cubey.512x512x512.uint16.pagetable.16x32blk.raw',
+      this.scene, true, false, BABYLON.Texture.NEAREST_SAMPLINGMODE, undefined, undefined, undefined, false, undefined,
+      RGBA8x512TextureParser);
+    const pageDirectory = new BABYLON.Texture('datasets/Volume-cubey.512x512x512.uint16.pagedirectory.4x1.raw',
+      this.scene, true, false, BABYLON.Texture.NEAREST_SAMPLINGMODE, undefined, undefined, undefined, false, undefined,
+      RGBA8x4TextureParser);
     const cubeTex = new BABYLON.Texture('datasets/e2198.raw', this.scene, true, false,
       BABYLON.Texture.NEAREST_SAMPLINGMODE, undefined, undefined, undefined, false, undefined, DatasetParser);
 
@@ -121,6 +133,10 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
     this.gl.activeTexture(this.gl.TEXTURE2);
     const depthTex = this.createScreenTexture('segDepthTex', this.gl.RGBA32F, this.gl.RGBA, this.gl.FLOAT);
 
+    this.gl.activeTexture(this.gl.TEXTURE3);
+    const cacheStateTex = this.createScreenTexture(
+      'cacheStateTex', this.gl.RGBA32UI, this.gl.RGBA_INTEGER, this.gl.UNSIGNED_INT);
+
     this.gl.activeTexture(this.gl.TEXTURE0);
 
     const fb = segColorTex._texture._framebuffer;
@@ -130,8 +146,11 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
       segIDTex._texture, 0);
     this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT2, this.gl.TEXTURE_2D,
       depthTex._texture, 0);
+    this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT3, this.gl.TEXTURE_2D,
+      cacheStateTex._texture, 0);
 
-    this.gl.drawBuffers([this.gl.COLOR_ATTACHMENT0, this.gl.COLOR_ATTACHMENT1, this.gl.COLOR_ATTACHMENT2]);
+    this.gl.drawBuffers([
+      this.gl.COLOR_ATTACHMENT0, this.gl.COLOR_ATTACHMENT1, this.gl.COLOR_ATTACHMENT2, this.gl.COLOR_ATTACHMENT3]);
 
     if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !== this.gl.FRAMEBUFFER_COMPLETE) {
       console.error('Framebuffer creation failed!');
@@ -143,6 +162,7 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
       this.gl.clearBufferfv(this.gl.COLOR, 0, [0.2, 0.2, 0.3, 1.0]); // segColorTex (Segment Color)
       this.gl.clearBufferuiv(this.gl.COLOR, 1, [0, 0, 0, 0]);        // segIDTex (Segment ID)
       this.gl.clearBufferfv(this.gl.COLOR, 2, [0.0, 0.0, 0.0, 0.0]); // depthTex (Segment Depth)
+      this.gl.clearBufferuiv(this.gl.COLOR, 3, [0, 0, 0, 0]); // cacheStateTex (miss/empty)
     };
 
     this.scene.customRenderTargets.push(segColorTex);
@@ -152,17 +172,24 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
     frontplaneMaterial.setVector3('distortionCorrection', distort);
     frontplaneMaterial.setFloat('fovy', this.camera.fov);
     frontplaneMaterial.setTexture('cubeTex', cubeTex);
+    frontplaneMaterial.setTexture('voxelCache', voxelCache);
+    frontplaneMaterial.setTexture('pageTable', pageTable);
+    frontplaneMaterial.setTexture('pageDirectory', pageDirectory);
 
     // Post Processes
     shaderStore.composePixelShader = composeFragmentShader.trim();
-    const postProcess = new BABYLON.PostProcess('compose', 'compose', [], ['segColorTex', 'segIDTex', 'segDepthTex'],
+    const postProcess = new BABYLON.PostProcess('compose', 'compose', [],
+                                                ['segColorTex', 'segIDTex', 'segDepthTex', 'cacheStateTex'],
       1.0, this.camera, BABYLON.Texture.NEAREST_SAMPLINGMODE, this.engine, true);
 
     postProcess.onApply = (effect) => {
       effect.setTexture('segColorTex', segColorTex);
       effect.setTexture('segIDTex', segIDTex);
       effect.setTexture('segDepthTex', depthTex);
+      effect.setTexture('cacheStateTex', cacheStateTex);
     };
+
+
   }
 
   public componentWillUnmount() {
@@ -172,6 +199,7 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
         this.engine.scenes[0].dispose();
       }
     }
+    this.engine.wipeCaches();
     this.engine.dispose();
   }
 
