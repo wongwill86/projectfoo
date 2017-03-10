@@ -5,6 +5,7 @@ import DatasetParser from '../tools/data/DatasetParser';
 import fragmentShader from '../shaders/dvr.fragment.glsl';
 import vertexShader from '../shaders/dvr.vertex.glsl';
 import composeFragmentShader from '../shaders/compose.fragment.glsl';
+import UInt64 from '../../types/uint64';
 
 export interface SceneProps {
   width: number;
@@ -116,10 +117,10 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
     // Selected Segment Hash Texture
     const selectionHash = new Cuckoo(this.scene, DataType.UInt64, 'identity', 'fnv1a');
     for (let i = 500; i < 1000; ++i) {
-      selectionHash.set(i, 0);
+      selectionHash.set(new UInt64(i, 0));
     }
     for (let i = 3000; i < 3500; ++i) {
-      selectionHash.set(i, 0);
+      selectionHash.set(new UInt64(i, 0));
     }
     /*for (let i = 0; i < 35000; ++i) {
        selectionHash.set(i, 0);
@@ -168,8 +169,8 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
     // Uniforms
     frontplaneMaterial.setVector3('distortionCorrection', distort);
     frontplaneMaterial.setFloat('fovy', this.camera.fov);
-    frontplaneMaterial.setVector2('seeds', selectionHash.seeds);
-    frontplaneMaterial.setVector3('sizes', selectionHash.sizes);
+    frontplaneMaterial.setVector2('seeds', selectionHash.getSeeds());
+    frontplaneMaterial.setVector3('sizes', selectionHash.getSizes());
     frontplaneMaterial.setTexture('cubeTex', cubeTex);
     frontplaneMaterial.setTexture('selectionTex', selectionHash.texture);
 

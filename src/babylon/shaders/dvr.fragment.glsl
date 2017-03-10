@@ -3,10 +3,11 @@ precision highp usampler2D;
 precision highp usampler3D;
 
 uniform usampler2D selectionTex;
-uniform usampler3D cubeTex;
-uniform float fovy;
 uniform vec2 seeds; // TODO: should be uvec2
 uniform vec3 sizes; // TODO: should be uvec3
+
+uniform usampler3D cubeTex;
+uniform float fovy;
 
 in vec3 frontPos;
 in vec3 rayDir;
@@ -33,6 +34,8 @@ const uint _murmur3_32_mix2 = uint(0xc2b2ae35);
 
 const uint _fnv_offset_32 = uint(0x811c9dc5);
 const uint _fnv_prime_32 = uint(16777619);
+
+// --------------------- BEGIN Cuckoo Hashing ----------------------------
 
 uint hashCombine(uint m, uint n) {
   return m ^ (n + uint(0x517cc1b7) + (n << 6) + (n >> 2));
@@ -77,6 +80,33 @@ uint fnv1a_32(uint key, uint seed) {
   return h;
 }
 
+bool isVisible(uint segID) {
+  if (segID == uint(0)) {
+    return false;
+  }
+  uint hi = uint(0);
+
+  uint hashPos = hashCombine(segID, hi) % uint(sizes.z);
+  uint x = hashPos % uint(sizes.x);
+  uint y = hashPos / uint(sizes.x);
+
+  uvec2 texel = texelFetch(selectionTex, ivec2(x, y), 0).rg;
+  if (texel.r == segID && texel.g == hi) {
+    return true;
+  }
+
+  hashPos = hashCombine(fnv1a_32(segID, uint(seeds.y)), fnv1a_32(hi, uint(seeds.y))) % uint(sizes.z);
+  x = hashPos % uint(sizes.x);
+  y = hashPos / uint(sizes.x);
+
+  texel = texelFetch(selectionTex, ivec2(x, y), 0).rg;
+  if (texel.r == segID && texel.g == hi) {
+    return true;
+  }
+}
+
+// --------------------- END Cuckoo Hashing ----------------------------
+
 // good enough for now, don't use for serious stuff (beware lowp)
 float rand(vec2 co){
   return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
@@ -103,32 +133,6 @@ vec2 iRayBox(vec3 pos, vec3 dir) {
   float texit = min(texit3.x, min(texit3.y, texit3.z));
 
   return vec2(tenter, texit);
-}
-
-bool isVisible(uint segID) {
-  if (segID == uint(0)) {
-    return false;
-  }
-  uint hi = uint(0);
-
-  uint hashPos = hashCombine(segID, hi) % uint(sizes.z);
-  uint x = hashPos % uint(sizes.x);
-  uint y = hashPos / uint(sizes.x);
-
-  uvec2 texel = texelFetch(selectionTex, ivec2(x, y), 0).rg;
-  if (texel.r == segID && texel.g == hi) {
-    return true;
-  }
-
-  hashPos = hashCombine(fnv1a_32(segID, uint(seeds.y)), fnv1a_32(hi, uint(seeds.y))) % uint(sizes.z);
-  x = hashPos % uint(sizes.x);
-  y = hashPos / uint(sizes.x);
-
-  texel = texelFetch(selectionTex, ivec2(x, y), 0).rg;
-  if (texel.r == segID && texel.g == hi) {
-    return true;
-  }
-
 }
 
 uint getSegID( vec3 texCoord )

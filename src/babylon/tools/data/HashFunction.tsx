@@ -1,21 +1,22 @@
-export type hashtype = 'murmur' | 'fnv1a' | 'identity';
+import UInt64 from '../../../types/uint64';
+export type HashType = 'murmur' | 'fnv1a' | 'identity';
 
 export default class HashFunction {
   /* Constants */
   // Murmur3
-  private static readonly _murmur3_32_c1 = 0xcc9e2d51;
-  private static readonly _murmur3_32_c2 = 0x1b873593;
-  private static readonly _murmur3_32_n = 0xe6546b64;
-  private static readonly _murmur3_32_mix1 = 0x85ebca6b;
-  private static readonly _murmur3_32_mix2 = 0xc2b2ae35;
+  private static readonly murmur3_32_c1 = 0xcc9e2d51;
+  private static readonly murmur3_32_c2 = 0x1b873593;
+  private static readonly murmur3_32_n = 0xe6546b64;
+  private static readonly murmur3_32_mix1 = 0x85ebca6b;
+  private static readonly murmur3_32_mix2 = 0xc2b2ae35;
 
   // FNV-1a
-  private static readonly _fnv_offset_32 = 0x811c9dc5;
-  private static readonly _fnv_prime_32 = 16777619;
+  private static readonly fnv_offset_32 = 0x811c9dc5;
+  private static readonly fnv_prime_32 = 16777619;
 
-  private _hashfunc: (lo: number, hi: number) => number;
+  private hashFunc: (key: UInt64) => number;
 
-  public static createHashFunctions(a: hashtype, b: hashtype): [HashFunction, HashFunction] {
+  public static createHashFunctions(a: HashType, b: HashType): [HashFunction, HashFunction] {
     return [new HashFunction(a), new HashFunction(b)];
   }
 
@@ -30,20 +31,20 @@ export default class HashFunction {
   // Murmur3
   // https://en.wikipedia.org/wiki/MurmurHash
   public static murmur3_32(k: number, seed: number): number {
-    k = this._x86Multiply(k, this._murmur3_32_c1);
-    k = this._x86Rotl(k, 15);
-    k = this._x86Multiply(k, this._murmur3_32_c2);
+    k = this.x86Multiply(k, this.murmur3_32_c1);
+    k = this.x86Rotl(k, 15);
+    k = this.x86Multiply(k, this.murmur3_32_c2);
 
     let h = seed;
     h ^= k;
-    h = this._x86Rotl(h, 13);
-    h = this._x86Multiply(h, 5) + this._murmur3_32_n;
+    h = this.x86Rotl(h, 13);
+    h = this.x86Multiply(h, 5) + this.murmur3_32_n;
 
     h ^= 4;
     h ^= h >>> 16;
-    h = this._x86Multiply(h, this._murmur3_32_mix1);
+    h = this.x86Multiply(h, this.murmur3_32_mix1);
     h ^= h >>> 13;
-    h = this._x86Multiply(h, this._murmur3_32_mix2);
+    h = this.x86Multiply(h, this.murmur3_32_mix2);
     h ^= h >>> 16;
 
     return h >>> 0;
@@ -51,16 +52,16 @@ export default class HashFunction {
 
   // FNV-1a (with seed)
   // https://en.wikipedia.org/wiki/Fowler-Noll-Vo_hash_function
-  public static fnv1a_32(k: number, seed: number = this._fnv_offset_32): number {
+  public static fnv1a_32(k: number, seed: number = this.fnv_offset_32): number {
     let h = seed;
     h ^= (k & 0xFF000000) >>> 24;
-    h = this._x86Multiply(h, this._fnv_prime_32);
+    h = this.x86Multiply(h, this.fnv_prime_32);
     h ^= (k & 0x00FF0000) >>> 16;
-    h = this._x86Multiply(h, this._fnv_prime_32);
+    h = this.x86Multiply(h, this.fnv_prime_32);
     h ^= (k & 0x0000FF00) >>> 8;
-    h = this._x86Multiply(h, this._fnv_prime_32);
+    h = this.x86Multiply(h, this.fnv_prime_32);
     h ^= (k & 0x000000FF) >>> 0;
-    h = this._x86Multiply(h, this._fnv_prime_32);
+    h = this.x86Multiply(h, this.fnv_prime_32);
 
     return h >>> 0;
   }
@@ -69,42 +70,37 @@ export default class HashFunction {
     return (m ^ (n + 0x517cc1b7 + (n << 6) + (n >>> 2))) >>> 0;
   }
 
-  private static _x86Multiply(m: number, n: number) {
+  private static x86Multiply(m: number, n: number) {
     return ((m & 0xffff) * n) + ((((m >>> 16) * n) & 0xffff) << 16);
   }
 
-  private static _x86Rotl(m: number, n: number) {
+  private static x86Rotl(m: number, n: number) {
     return (m << n) | (m >>> (32 - n));
   }
   /* tslint:enable:no-bitwise */
 
   /* Hash Object */
-  constructor(private _mode: hashtype, private _seed: number = Math.floor(Math.random() * 0x01000000)) {
-    if (this._mode === 'murmur') {
-      this._hashfunc = (lo, hi): number => {
+  constructor(public readonly mode: HashType, public readonly seed: number = Math.floor(Math.random() * 0x01000000)) {
+    if (this.mode === 'murmur') {
+      this.hashFunc = (key): number => {
         return HashFunction.combineUInt32(
-          HashFunction.murmur3_32(lo, this._seed), HashFunction.murmur3_32(hi, this._seed));
+          HashFunction.murmur3_32(key.low, this.seed), HashFunction.murmur3_32(key.high, this.seed));
       };
-    } else if (this._mode === 'fnv1a') {
-      this._hashfunc = (lo, hi): number => {
+    } else if (this.mode === 'fnv1a') {
+      this.hashFunc = (key): number => {
         return HashFunction.combineUInt32(
-          HashFunction.fnv1a_32(lo, this._seed), HashFunction.fnv1a_32(hi, this._seed));
+          HashFunction.fnv1a_32(key.low, this.seed), HashFunction.fnv1a_32(key.high, this.seed));
       };
-    } else if (this._mode === 'identity') {
-      this._hashfunc = (lo, hi): number => {
+    } else if (this.mode === 'identity') {
+      this.hashFunc = (key): number => {
         return HashFunction.combineUInt32(
-          HashFunction.identity_32(lo), HashFunction.identity_32(hi));
+          HashFunction.identity_32(key.low), HashFunction.identity_32(key.high));
       };
     }
   }
 
-  public compute(lo: number, hi: number = 0): number {
-    return this._hashfunc(lo, hi);
+  public compute(key: UInt64): number {
+    return this.hashFunc(key);
   }
-
-  get seed() {
-    return this._seed;
-  }
-
 
 }
