@@ -1,12 +1,9 @@
 import React from 'react';
 import BABYLON from 'babylonjs';
-import DatasetParser from '../tools/data/DatasetParser';
-import R16TextureParser from '../tools/data/R16TextureParser';
-import RGBA8x512TextureParser from '../tools/data/RGBA8x512TextureParser';
-import RGBA8x4TextureParser from '../tools/data/RGBA8x4TextureParser';
 import fragmentShader from '../shaders/dvr.fragment.glsl';
 import vertexShader from '../shaders/dvr.vertex.glsl';
 import composeFragmentShader from '../shaders/compose.fragment.glsl';
+import { VoxelCacheTexture, PageTableTexture, PageDirectoryTexture, ScreenTexture } from './Textures';
 
 export interface SceneProps {
   width: number;
@@ -18,6 +15,9 @@ export interface SceneState {
 }
 
 export default class Scene extends React.Component<SceneProps, SceneState> {
+  static readonly VOXEL_BLOCK_SIZE: number = 32;
+  static readonly VOXEL_BLOCK_SIZE_BITS: number = Math.log2(Scene.VOXEL_BLOCK_SIZE);
+
   public static propTypes = {
     width: React.PropTypes.number.isRequired,
     height: React.PropTypes.number.isRequired,
@@ -30,6 +30,13 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
   public camera: BABYLON.ArcRotateCamera;
   public materials: Map<String, BABYLON.ShaderMaterial>;
   public gl: WebGL2RenderingContext;
+  public pageDirectory: PageDirectoryTexture;
+  public pageTable: PageTableTexture;
+  public voxelCache: VoxelCacheTexture;
+  public cacheState: BABYLON.Texture;
+  public framebuffer: WebGLFramebuffer;
+
+  private cacheBuffer: Uint32Array;
 
   private dataset = {
     dimensions: new BABYLON.Vector3(4096, 4096, 4096),
@@ -66,11 +73,17 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
     this.canvas = canvas;
 
     this.createScene();
+    this.cacheBuffer = new Uint32Array(this.canvas.width * this.canvas.height * 4);
 
     this.engine.runRenderLoop(() => {
       this.scene.render();
       this.updateCamera();
     });
+    setTimeout(() => {
+      console.log('Updating cache');
+      this.updateCacheBuffer();
+      this.fetchMisses(this.aggregateMisses());
+    }, 5000);
   }
 
   public createScene(): void {
@@ -110,44 +123,60 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
     frontplane.material = frontplaneMaterial;
 
     // Textures + Framebuffers
-    const voxelCache = new BABYLON.Texture('datasets/Volume-cubey.512x512x512.uint16.raw', this.scene,
-      true, false, BABYLON.Texture.NEAREST_SAMPLINGMODE, undefined, undefined, undefined, false, undefined,
-      R16TextureParser);
-    const pageTable = new BABYLON.Texture('datasets/Volume-cubey.512x512x512.uint16.pagetable.16x32blk.raw',
-      this.scene, true, false, BABYLON.Texture.NEAREST_SAMPLINGMODE, undefined, undefined, undefined, false, undefined,
-      RGBA8x512TextureParser);
-    const pageDirectory = new BABYLON.Texture('datasets/Volume-cubey.512x512x512.uint16.pagedirectory.4x1.raw',
-      this.scene, true, false, BABYLON.Texture.NEAREST_SAMPLINGMODE, undefined, undefined, undefined, false, undefined,
-      RGBA8x4TextureParser);
-    const cubeTex = new BABYLON.Texture('datasets/e2198.raw', this.scene, true, false,
-      BABYLON.Texture.NEAREST_SAMPLINGMODE, undefined, undefined, undefined, false, undefined, DatasetParser);
+    this.voxelCache = new VoxelCacheTexture('voxelCache', this.scene);
+    this.pageTable = new PageTableTexture('pageTable', this.scene);
+    this.pageDirectory = new PageDirectoryTexture('pageDirectory', this.scene);
 
     this.gl.activeTexture(this.gl.TEXTURE0);
+
     const segColorTex = new BABYLON.RenderTargetTexture('segColorTex',
       { width: this.canvas.width, height: this.canvas.height }, this.scene, false, true,
       BABYLON.Engine.TEXTURETYPE_UNSIGNED_INT, false, BABYLON.Texture.NEAREST_SAMPLINGMODE, false, false);
 
     this.gl.activeTexture(this.gl.TEXTURE1);
-    const segIDTex = this.createScreenTexture('segIDTex', this.gl.R32UI, this.gl.RED_INTEGER, this.gl.UNSIGNED_INT);
+    const segIDTex = new ScreenTexture(
+      'segIDTex', this.scene, {
+        level: 0,
+        width: this.canvas.width,
+        height: this.canvas.height,
+        internalFormat: this.gl.R32UI,
+        format: this.gl.RED_INTEGER,
+        type: this.gl.UNSIGNED_INT,
+      });
 
     this.gl.activeTexture(this.gl.TEXTURE2);
-    const depthTex = this.createScreenTexture('segDepthTex', this.gl.RGBA32F, this.gl.RGBA, this.gl.FLOAT);
+    const depthTex = new ScreenTexture(
+      'segDepthTex', this.scene, {
+        level: 0,
+        width: this.canvas.width,
+        height: this.canvas.height,
+        internalFormat: this.gl.RGBA32F,
+        format: this.gl.RGBA,
+        type: this.gl.FLOAT,
+      });
 
     this.gl.activeTexture(this.gl.TEXTURE3);
-    const cacheStateTex = this.createScreenTexture(
-      'cacheStateTex', this.gl.RGBA32UI, this.gl.RGBA_INTEGER, this.gl.UNSIGNED_INT);
+    this.cacheState = new ScreenTexture(
+      'cacheState', this.scene, {
+        level: 0,
+        width: this.canvas.width,
+        height: this.canvas.height,
+        internalFormat: this.gl.RGBA32UI,
+        format: this.gl.RGBA_INTEGER,
+        type: this.gl.UNSIGNED_INT,
+      });
 
     this.gl.activeTexture(this.gl.TEXTURE0);
 
-    const fb = segColorTex._texture._framebuffer;
-    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, fb);
+    this.framebuffer = segColorTex._texture._framebuffer;
+    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.framebuffer);
 
     this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT1, this.gl.TEXTURE_2D,
       segIDTex._texture, 0);
     this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT2, this.gl.TEXTURE_2D,
       depthTex._texture, 0);
     this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT3, this.gl.TEXTURE_2D,
-      cacheStateTex._texture, 0);
+      this.cacheState._texture, 0);
 
     this.gl.drawBuffers([
       this.gl.COLOR_ATTACHMENT0, this.gl.COLOR_ATTACHMENT1, this.gl.COLOR_ATTACHMENT2, this.gl.COLOR_ATTACHMENT3]);
@@ -162,7 +191,7 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
       this.gl.clearBufferfv(this.gl.COLOR, 0, [0.2, 0.2, 0.3, 1.0]); // segColorTex (Segment Color)
       this.gl.clearBufferuiv(this.gl.COLOR, 1, [0, 0, 0, 0]);        // segIDTex (Segment ID)
       this.gl.clearBufferfv(this.gl.COLOR, 2, [0.0, 0.0, 0.0, 0.0]); // depthTex (Segment Depth)
-      this.gl.clearBufferuiv(this.gl.COLOR, 3, [0, 0, 0, 0]); // cacheStateTex (miss/empty)
+      this.gl.clearBufferuiv(this.gl.COLOR, 3, [0, 0, 0, 0]); // cacheState (miss/empty)
     };
 
     this.scene.customRenderTargets.push(segColorTex);
@@ -171,25 +200,59 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
     // Uniforms
     frontplaneMaterial.setVector3('distortionCorrection', distort);
     frontplaneMaterial.setFloat('fovy', this.camera.fov);
-    frontplaneMaterial.setTexture('cubeTex', cubeTex);
-    frontplaneMaterial.setTexture('voxelCache', voxelCache);
-    frontplaneMaterial.setTexture('pageTable', pageTable);
-    frontplaneMaterial.setTexture('pageDirectory', pageDirectory);
+    frontplaneMaterial.setTexture('voxelCache', this.voxelCache);
+    frontplaneMaterial.setTexture('pageTable', this.pageTable);
+    frontplaneMaterial.setTexture('pageDirectory', this.pageDirectory);
 
     // Post Processes
     shaderStore.composePixelShader = composeFragmentShader.trim();
     const postProcess = new BABYLON.PostProcess('compose', 'compose', [],
-                                                ['segColorTex', 'segIDTex', 'segDepthTex', 'cacheStateTex'],
+                                                ['segColorTex', 'segIDTex', 'segDepthTex', 'cacheState'],
       1.0, this.camera, BABYLON.Texture.NEAREST_SAMPLINGMODE, this.engine, true);
 
     postProcess.onApply = (effect) => {
       effect.setTexture('segColorTex', segColorTex);
       effect.setTexture('segIDTex', segIDTex);
       effect.setTexture('segDepthTex', depthTex);
-      effect.setTexture('cacheStateTex', cacheStateTex);
+      effect.setTexture('cacheState', this.cacheState);
     };
+  }
 
+  public updateCacheBuffer(): void {
+    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.framebuffer);
+    if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) === this.gl.FRAMEBUFFER_COMPLETE) {
+      this.gl.readBuffer(this.gl.COLOR_ATTACHMENT3);
+      this.gl.readPixels(0, 0, this.canvas.width, this.canvas.height, this.gl.RGBA_INTEGER, this.gl.UNSIGNED_INT,
+                        this.cacheBuffer);
+    }
+    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
 
+  }
+
+  /* tslint:disable:no-bitwise */
+  public aggregateMisses(): Map<string, number> {
+    let cacheMisses: Map<string, number> = new Map<string, number>();
+    for (let index = 0; index < this.cacheBuffer.length; index ++) {
+      let x: number = this.cacheBuffer[index];
+      let y: number = this.cacheBuffer[index + 1];
+      let z: number = this.cacheBuffer[index + 2];
+      let cacheAndLOD: number = this.cacheBuffer[index + 2];
+      if (cacheAndLOD !== 0) {
+        let key: string =
+          (x >> Scene.VOXEL_BLOCK_SIZE_BITS).toString() +
+          (y >> Scene.VOXEL_BLOCK_SIZE_BITS).toString() +
+          (z >> Scene.VOXEL_BLOCK_SIZE_BITS).toString();
+        cacheMisses.set(key, cacheAndLOD && 0x1F);
+      }
+    }
+    return cacheMisses;
+  }
+
+  public fetchMisses(cacheMisses: Map<string, number>) {
+    console.log('# cacheMisses!!! : ' + cacheMisses.size);
+    cacheMisses.forEach((value: number, key: string, map: Map<string, number>) => {
+      // console.log(`Missing cachLevel ${map.get(key)} at ${key}`);
+    });
   }
 
   public componentWillUnmount() {
@@ -208,33 +271,4 @@ export default class Scene extends React.Component<SceneProps, SceneState> {
       <canvas height={this.props.height} width={this.props.width} id={this.props.canvasId} />
     </div>;
   };
-
-  private createScreenTexture(name: string, internalformat: number, format: number, type: number): BABYLON.Texture {
-    const babTex = new BABYLON.Texture('', this.scene, true);
-    babTex.name = name;
-    babTex.isRenderTarget = true;
-    babTex.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
-    babTex.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
-    babTex.coordinatesMode = BABYLON.Texture.PROJECTION_MODE;
-    babTex._texture = this.engine.createDynamicTexture(this.canvas.width, this.canvas.height, false,
-      BABYLON.Texture.NEAREST_SAMPLINGMODE);
-
-    if (type === this.gl.FLOAT) {
-      babTex._texture.type = BABYLON.Engine.TEXTURETYPE_FLOAT;
-    } else if (type === this.gl.UNSIGNED_BYTE || type === this.gl.UNSIGNED_SHORT || type === this.gl.UNSIGNED_INT) {
-      babTex._texture.type = BABYLON.Engine.TEXTURETYPE_UNSIGNED_INT;
-    }
-
-    this.gl.bindTexture(this.gl.TEXTURE_2D, babTex._texture);
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, internalformat, this.canvas.width, this.canvas.height, 0, format, type,
-      undefined);
-    this.gl.bindTexture(this.gl.TEXTURE_2D, null);
-
-    babTex._texture.isReady = true;
-    return babTex;
-  }
 }

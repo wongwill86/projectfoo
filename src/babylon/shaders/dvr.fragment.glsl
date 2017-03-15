@@ -2,10 +2,12 @@ precision highp float;
 precision highp usampler3D;
 precision highp int;
 
-uniform usampler3D cubeTex;
 uniform float fovy;
+// R16UI - (R: SegmentID)
 uniform lowp usampler3D voxelCache;
+// RGBA8UI - (R: VoxelCacheBlockX, G: VoxelCacheBlockY, B: VoxelCacheBlockZ, A: Mapping Flag)
 uniform lowp usampler3D pageTable;
+// RGBA8UI UInt16 - (R: PageTableBlockX, G: PageTableBlockY, B: PageTableBlockZ, A: Mapping Flag)
 uniform lowp usampler3D pageDirectory;
 
 in vec3 frontPos;
@@ -14,6 +16,7 @@ in vec3 rayDir;
 //layout(location = 0) out vec4 glFragColor;
 layout(location = 1) out uint glFragSegID;
 layout(location = 2) out vec4 glFragDepth;
+// RGBA32UI - (R: PageTableBlockX, G: PageTableBlockY, B: PageTableBlockZ, A: (CacheLevel << 5 + LevelOfDetail))
 layout(location = 3) out uvec4 glCacheState;
 
 const vec3 ZERO3 = vec3(0.0);
@@ -39,9 +42,10 @@ const float TABLE_SIZE_PAGE = 16.0;
 const float TOTAL_SIZE_PAGE_DIRECTORY = 4.0;
 const float TOTAL_SIZE_PAGE_TABLES = BLOCK_SIZE_PAGE * TABLE_SIZE_VOXEL;
 const float TOTAL_SIZE_VOXEL_TABLE = BLOCK_SIZE_VOXEL * TABLE_SIZE_PAGE;
-const uint EMPTY = uint(0);
+
+const uint NOT_MAPPED = uint(0);
 const uint MAPPED = uint(1);
-const uint NOT_MAPPED = uint(2);
+const uint EMPTY = uint(2);
 
 const uint PAGE_DIRECTORY = uint(4);
 const uint PAGE_TABLE = uint(8);
@@ -132,7 +136,7 @@ uvec4 getVoxelEntry(vec3 offset, vec3 positionVoxel) {
  *                        R - SegmentID (32 upper bits)
  *                        G - SegmentID (32 lower bits)
  *                        B - Flag (EMPTY/MAPPED/NOT_MAPPED)
- *                        A - Level (PAGE_DIRECTORY/PAGE_TABLE/VOXEL_BLOCK)
+ *                        A - CacheLevel (PAGE_DIRECTORY/PAGE_TABLE/VOXEL_BLOCK)
  */
 uvec4 getSegIDMapping(vec3 positionVoxel) {
 
@@ -412,7 +416,8 @@ float occlusion(vec3 pos, float stepsize) {
 
   return 1.0 - 2.5 * max(0.0, occl / 18.0 - 0.60);
 }
-
+// super ugly hack to get MRT for now
+layout(location = 0)
 void main() {
   glFragColor = ZERO4;
 
@@ -430,7 +435,7 @@ void main() {
 
   uint segID = uint(0);
   uint visibleSegID = uint(0);
-  uvec4 cacheState = uvec4(0);
+  uvec4 cacheState = uvec4(0, 0, 0, MAPPED);
   vec3 visiblePos = frontPos;
 
   vec3 lightDir = normalize(-dir + cross(dir, vec3(0.0, 1.0, 0.0)));
@@ -442,12 +447,14 @@ void main() {
     vec3 positionVoxel = getVoxelCoordinates(pos);
 
     uvec4 segIDMapping = getSegIDMapping(positionVoxel);
+
     if (segIDMapping.b != MAPPED) {
       // TODO jump appropriate distance or try going up 1 mip level instead of breaking out
       if (segIDMapping.b == NOT_MAPPED) {
         cacheState.rgb = uvec3(positionVoxel);
-        cacheState.a = segIDMapping.a;
+        cacheState.a = segIDMapping.a  << 5; // + LevelOfDetail which is 0 for now
       }
+
 
       if (DEBUG) {
         if (segIDMapping.a == PAGE_DIRECTORY) {
@@ -460,7 +467,6 @@ void main() {
       }
       break;
     }
-
     // TODO proper uint64 conversion
     uint segID = segIDMapping.g;
 
