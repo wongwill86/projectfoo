@@ -5,7 +5,7 @@ export interface Options<K, H> {
   toHash?: (key: K) => H;
 }
 
-export class LRUHash<K, V, H>  {
+export class LRUCustomHash<K, V, H>  {
   public toHash: (key: K) => H;
   public romHash: (hash: H) => K;
 
@@ -31,7 +31,7 @@ export class LRUHash<K, V, H>  {
     let valueShift = this.valuesLRU.shift();
     if (keyShift !== undefined && valueShift !== undefined) {
       if (keyShift[0] !== valueShift[0]) {
-        console.error(`LRUHash not in sync, shifted key ${keyShift} and value ${valueShift}`);
+        console.error(`LRUCustomHash not in sync, shifted key ${keyShift} and value ${valueShift}`);
       }
       return [keyShift[1], valueShift[1]];
     }
@@ -44,13 +44,13 @@ export class LRUHash<K, V, H>  {
   }
 
   // Does not register recent-cy
-  public has(key: K) {
+  public has(key: K): boolean {
     return this.valuesLRU.has(this.toHash(key));
   }
 
   // Does not register recent-cy
-  public find(key: K) {
-    this.valuesLRU.find(this.toHash(key));
+  public find(key: K): V | undefined {
+    return this.valuesLRU.find(this.toHash(key));
   }
 
   public delete(key: K): V | undefined {
@@ -58,7 +58,7 @@ export class LRUHash<K, V, H>  {
     return this.valuesLRU.delete(this.toHash(key));
   }
 
-  public clear() {
+  public clear(): void {
     this.keysLRU.clear();
     this.valuesLRU.clear();
   }
@@ -71,7 +71,7 @@ export class LRUHash<K, V, H>  {
     return this.valuesLRU.values();
   }
 
-  public forEach(iter: (value: V, key: K, map: LRUHash<K, H, V>) => void, thisArg: any = this) {
+  public forEach(iter: (value: V, key: K, map: LRUCustomHash<K, H, V>) => void, thisArg: any = this): void {
     this.valuesLRU.forEach((value: V, key: H, m: LRUMap<H, V>) => {
       let originalKey = this.keysLRU.find(key);
       if (originalKey === undefined) {
@@ -83,7 +83,7 @@ export class LRUHash<K, V, H>  {
   }
 }
 
-export default class LRUHashString<K, V> extends LRUHash<K, V, string> {
+export default class LRUHashString<K, V> extends LRUCustomHash<K, V, string> {
   constructor(options: Options<K, string> | number) {
     if (typeof options === 'number') {
       options = { limit: options };

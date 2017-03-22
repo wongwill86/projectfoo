@@ -1,4 +1,4 @@
-import LRUHashString from './LRUMap';
+import LRUHashString from './LRUCustomHash';
 
 interface Foo {
   foo: number;

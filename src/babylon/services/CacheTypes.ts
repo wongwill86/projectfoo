@@ -35,6 +35,14 @@ export interface SizePower extends Vec3Simple.Vec3 {
 }
 
 /*
+ * Size in terms of number of blocks within a cache
+ */
+export interface SizeBlock extends Vec3Simple.Vec3 {
+  readonly _size_block_guard: boolean;
+}
+
+/*
+/*
  * Coordinates for an individual voxel in the entire dataset
  */
 export interface VoxelCoordinates extends Vec3Simple.Vec3 {
