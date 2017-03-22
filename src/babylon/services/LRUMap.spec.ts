@@ -49,18 +49,34 @@ test('Getting and setting using custom hash function works correctly.', () => {
   expect(actual).toEqual(expected);
 });
 
-test('forEach correctly recreates from hash function', () => {
+test('forEach correctly recreates key from hash function', () => {
   let key: Foo = {foo: 1, fofoo: 32};
   let value = 'one';
-  let map = new LRUMap<Foo, string>({
-    toHash: (keyHash: Foo) => {
-      return JSON.stringify(keyHash, ['foo']);
-    },
-  });
+  let map = new LRUMap<Foo, string>({});
   map.set(key, value);
 
-  let types: string[] = [];
-  map.forEach((myValue, myKey, myMap) => types.push(typeof myKey));
-  expect(types.length).toEqual(1);
-  expect(types[0]).toEqual('object');
+  map.forEach((myValue: string, myKey: Foo, myMap: LRUMap<Foo, string>) => {
+    expect(typeof myKey).toEqual('object');
+  });
 });
+
+test('correctly calls dispose with fromHash', () => {
+  let fooVal: number = 1;
+  let key: Foo = {foo: fooVal, fofoo: 32};
+  let value = 'one';
+  let disposeCalled = false;
+  let map = new LRUMap<Foo, string>({
+    dispose: (myKey: Foo, myValue: String) => {
+      expect(typeof myKey).toEqual('object');
+      expect(myKey.foo).toEqual(fooVal);
+      disposeCalled = true;
+    },
+    max: 1,
+  });
+
+  map.set(key, value);
+  map.set(key, value);
+
+  expect(disposeCalled).toBeTruthy();
+});
+

@@ -14,6 +14,14 @@ export default class LRUMap<K, V> extends LRU<V> {
   public fromHash: (hash: any) => K;
 
   constructor(options: Options<K, V> | number) {
+    // hijack dispose if necessary
+    if (typeof options !== 'number' && options.dispose) {
+      let dispose = options.dispose;
+      options.dispose = (key: K, value: V) => {
+        dispose.call(this, this.fromHash(key), value);
+      };
+    }
+
     super(options);
     this.toHash = JSON.stringify;
     this.fromHash = JSON.parse;
