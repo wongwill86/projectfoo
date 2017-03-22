@@ -6,75 +6,108 @@ import * as Vec3Simple from './Vec3Simple';
  */
 
 /*
- * Generic Size for x,y,z
+ * Generic Size in x,y,z
  */
 export interface Size extends Vec3Simple.Vec3 {
   readonly _size_guard: boolean;
 }
 
 /*
- *[> tslint:disable:no-bitwise <]
- *function isPowerTwo(val: number): boolean {
- *  return (val & (val - 1)) === 0;
- *}
+ * Extend this to indicate that the value in power terms
  */
-
-export function toPowerTwo(size: Size): SizePower {
-  return {
-    x: Math.log2(size.x),
-    y: Math.log2(size.y),
-    z: Math.log2(size.z),
-  } as SizePower;
+export interface Power {
+  readonly _power_guard: boolean;
 }
 
 /*
- * Generic Size but in power
+ * Extend this to indicate interface is in world space coordinates
  */
-export interface SizePower extends Vec3Simple.Vec3 {
-  readonly _size_power_guard: boolean;
+export interface WorldSpace {
+  readonly _world_space_guard: boolean;
+}
+
+/*
+ * Extend this to indicate interface is in cache space coordinates
+ */
+export interface CacheSpace {
+  readonly _cache_space_guard: boolean;
+}
+
+/*
+ * Indicates this is a scaled inteface
+ */
+export interface Scaled<T extends Scale> {
+  readonly _scale_specific_guard: T;
+}
+
+/*
+ * Identify a scaled interface
+ */
+export interface Scale {
+  readonly _scale_guard: boolean;
+}
+
+/*
+ * Extend this to indicate interface is in voxel scale
+ */
+export interface VoxelScale extends Scale {
+  readonly _voxel_scale_guard: boolean;
+}
+
+/*
+ * Extend this to indicate this is in voxel block scale
+ */
+export interface VoxelBlockScale extends Scale {
+  readonly _voxel_block_scale_guard: boolean;
+}
+
+/*
+ * Extend this to indicate this is page block scale
+ */
+export interface PageBlockScale extends Scale {
+  readonly _page_block_scale__guard: boolean;
+}
+
+/*
+ * Size in power of two
+ */
+export interface SizePower extends Vec3Simple.Vec3, Size, Power {
 }
 
 /*
  * Size in terms of number of blocks within a cache
  */
-export interface SizeBlock extends Vec3Simple.Vec3 {
-  readonly _size_block_guard: boolean;
+export interface SizeBlock extends Vec3Simple.Vec3, Size, CacheSpace {
 }
 
 /*
-/*
  * Coordinates for an individual voxel in the entire dataset
  */
-export interface VoxelCoordinates extends Vec3Simple.Vec3 {
-  readonly _voxel_coordinates_guard: boolean;
+export interface VoxelCoordinates extends Vec3Simple.Vec3, WorldSpace, Scaled<VoxelScale> {
 }
 
 /*
  * Coordinates for a voxel block in the entire dataset
  */
-export interface VoxelBlockCoordinates extends Vec3Simple.Vec3 {
-  readonly _voxel_block_coordinates_guard: boolean;
+export interface VoxelBlockCoordinates extends Vec3Simple.Vec3, WorldSpace, Scaled<VoxelBlockScale> {
 }
 
 /*
  * Coordinates for a page table in the entire dataset
  */
-export interface PageBlockCoordinates extends Vec3Simple.Vec3 {
-  readonly _page_block_coordinates_guard: boolean;
+export interface PageBlockCoordinates extends Vec3Simple.Vec3, WorldSpace, Scaled<PageBlockScale> {
 }
 
 /*
  * Block coordinates within the voxel cache
  */
-export interface VoxelCacheBlock extends Vec3Simple.Vec3 {
-  readonly _voxel_cache_block_guard: boolean;
+export interface VoxelCacheBlock extends Vec3Simple.Vec3, CacheSpace, Scaled<VoxelBlockScale> {
 }
 
 /*
  * Block coordinates within the page table
  */
-export interface PageTableBlock extends Vec3Simple.Vec3 {
-  readonly _page_table_block_guard: boolean;
+export interface PageTableBlock extends Vec3Simple.Vec3, CacheSpace, Scaled<PageBlockScale> {
 }
 
 export interface BlockInfo<T> {
@@ -87,4 +120,18 @@ export interface VoxelBlockInfo extends BlockInfo<VoxelCacheBlock> {
 
 export interface PageBlockInfo extends BlockInfo<PageTableBlock> {
   size: number;
+}
+
+/*
+ *[> tslint:disable:no-bitwise <]
+ *function isPowerTwo(val: number): boolean {
+ *  return (val & (val - 1)) === 0;
+ *}
+ */
+export function toPowerTwo(size: Size): SizePower {
+  return {
+    x: Math.log2(size.x),
+    y: Math.log2(size.y),
+    z: Math.log2(size.z),
+  } as SizePower;
 }

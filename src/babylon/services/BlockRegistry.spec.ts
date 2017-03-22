@@ -1,19 +1,20 @@
 import { default as createBlockRegistry } from './BlockRegistry';
 import * as Vec3Simple from './Vec3Simple';
-import { SizeBlock, VoxelBlockCoordinates, VoxelCacheBlock, VoxelBlockInfo } from './CacheTypes';
+import { SizeBlock, VoxelBlockCoordinates, VoxelCacheBlock, VoxelBlockInfo, VoxelBlockScale }
+from './CacheTypes';
 
 const basicCreateInfo = (coordinates: VoxelBlockCoordinates, block: VoxelCacheBlock) => <VoxelBlockInfo>{ block };
 
 test('Initializes with correct amount of free blocks', () => {
   let dim = 4;
-  let registry = createBlockRegistry<VoxelBlockCoordinates, VoxelCacheBlock, VoxelBlockInfo>(
+  let registry = createBlockRegistry<VoxelBlockCoordinates, VoxelCacheBlock, VoxelBlockInfo, VoxelBlockScale>(
     Vec3Simple.Vec3(dim) as SizeBlock);
   expect(registry.numberFreeBlocks).toBe(4 ** 3);
 });
 
 test('Values are set and can be retrieved', () => {
   let dim = 2;
-  let registry = createBlockRegistry<VoxelBlockCoordinates, VoxelCacheBlock, VoxelBlockInfo>(
+  let registry = createBlockRegistry<VoxelBlockCoordinates, VoxelCacheBlock, VoxelBlockInfo, VoxelBlockScale>(
     Vec3Simple.Vec3(dim) as SizeBlock);
   let lru = registry.lru;
   let coordinates = Vec3Simple.Vec3(1) as VoxelBlockCoordinates;
@@ -24,7 +25,7 @@ test('Values are set and can be retrieved', () => {
 
 test('Values are shifted out', () => {
   let dim = 2;
-  let registry = createBlockRegistry<VoxelBlockCoordinates, VoxelCacheBlock, VoxelBlockInfo>(
+  let registry = createBlockRegistry<VoxelBlockCoordinates, VoxelCacheBlock, VoxelBlockInfo, VoxelBlockScale>(
     Vec3Simple.Vec3(dim) as SizeBlock);
   let lru = registry.lru;
   // Use up all blocks

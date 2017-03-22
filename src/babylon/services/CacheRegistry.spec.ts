@@ -1,11 +1,6 @@
 import CacheRegistry from './CacheRegistry';
 import * as Vec3Simple from './Vec3Simple';
-import { Size,
-  VoxelCoordinates,
-  VoxelBlockCoordinates, PageBlockCoordinates,
-  //VoxelCacheBlock, PageTableBlock,
-  VoxelBlockInfo, PageBlockInfo,
-} from './CacheTypes';
+import { Size, VoxelCoordinates } from './CacheTypes';
 
 const defaultPageDirectorySize = Vec3Simple.Vec3(128) as Size;
 const defaultPageTableSize = Vec3Simple.Vec3(128) as Size;
@@ -37,7 +32,7 @@ test('Converts coordinates to correct page block coordinates', () => {
                                         // (powers of 2: 7, 4)
                                         Vec3Simple.Vec3(128) as Size, Vec3Simple.Vec3(16) as Size);
   let voxelCoordinates = { x: 10500, y: 3000, z: 200 } as VoxelCoordinates;
-  let expected = { x:5, y: 1, z: 0 };
+  let expected = { x: 5, y: 1, z: 0 };
   let actual = cacheRegistry.toPageBlockCoordinates(voxelCoordinates);
   expect(actual).toEqual(expected);
 });
@@ -86,7 +81,7 @@ test('Converts coordinates to correct page block coordinates', () => {
    *let actual = cacheRegistry.toPageDirectoryBlock(voxelCoordinates);
    */
 
-/*}*/);
+/*});*/
 /*
  *  let voxelCoordinates: VoxelCoordinates = {
  *    x: 1200,

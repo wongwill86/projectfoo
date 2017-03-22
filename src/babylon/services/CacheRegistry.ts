@@ -1,17 +1,21 @@
 import * as Vec3Simple from './Vec3Simple';
-import LRUCoordinator from './LRUCoordinator';
-import { Size, SizePower, toPowerTwo,
+import { default as createBlockRegistry, BlockRegistry } from './BlockRegistry';
+import { Size, SizePower, SizeBlock, toPowerTwo,
   VoxelCoordinates,
   VoxelBlockCoordinates, PageBlockCoordinates,
   VoxelCacheBlock, PageTableBlock,
   VoxelBlockInfo, PageBlockInfo,
+  VoxelBlockScale, PageBlockScale,
 } from './CacheTypes';
 
-
-
+/*
+ *export default function createCacheRegistry(): CacheRegistry {
+ *
+ *}
+ */
 export default class CacheRegistry {
-  public readonly voxelBlockLRU: LRUCoordinator<VoxelBlockCoordinates, VoxelCacheBlock, VoxelBlockInfo>;
-  public readonly pageTableLRU: LRUCoordinator<PageBlockCoordinates, PageTableBlock, PageBlockInfo>;
+  public readonly voxelBlockLRU: BlockRegistry<VoxelBlockCoordinates, VoxelCacheBlock, VoxelBlockInfo, VoxelBlockScale>;
+  public readonly pageTableLRU: BlockRegistry<PageBlockCoordinates, PageTableBlock, PageBlockInfo, PageBlockScale>;
 
   private toVoxelBlockPower: SizePower;
   private toPageBlockPower: SizePower;
@@ -25,16 +29,10 @@ export default class CacheRegistry {
     this.toVoxelBlockPower = toPowerTwo(voxelBlockSize);
     this.toPageBlockPower = Vec3Simple.add(this.toVoxelBlockPower, toPowerTwo(pageBlockSize));
 
-    this.voxelBlockLRU = new  LRUCoordinator<VoxelBlockCoordinates, VoxelCacheBlock, VoxelBlockInfo>(
-      Vec3Simple.Vec3(3) as Size, (key: VoxelBlockCoordinates, info: VoxelBlockInfo) => {
-        console.log(`disposing ${JSON.stringify(key)} with ${JSON.stringify(info)}`);
-      },
-    );
-    this.pageTableLRU = new LRUCoordinator<PageBlockCoordinates, PageTableBlock, PageBlockInfo>(
-      Vec3Simple.Vec3(3) as Size, (key: PageBlockCoordinates, info: PageBlockInfo) => {
-        console.log(`disposing ${JSON.stringify(key)} with ${JSON.stringify(info)}`);
-      },
-    );
+    this.voxelBlockLRU = createBlockRegistry<VoxelBlockCoordinates, VoxelCacheBlock, VoxelBlockInfo, VoxelBlockScale>(
+      Vec3Simple.divide(voxelCacheSize, voxelBlockSize) as SizeBlock);
+    this.pageTableLRU = createBlockRegistry<PageBlockCoordinates, PageTableBlock, PageBlockInfo, PageBlockScale>(
+      Vec3Simple.divide(pageTableSize, pageBlockSize) as SizeBlock);
   }
 
   public registerToCache(position: VoxelCoordinates) {
