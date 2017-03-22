@@ -1,70 +1,96 @@
-import * as LRU from 'lru-cache';
+import { LRUMap } from 'lru_map';
 
-/*
- * TODO Investigate using custom LRU using ES6 maps (may have better performance)
- * TODO May 2017 TS 2.3 Default generics! <K, V, H = string>
- */
-export interface Options<K, V> extends LRU.Options<V> {
-  toHash?: (key: K) => any;
-  fromHash?: (hash: any) => K;
+export interface Options<K, H> {
+  limit: number;
+  toHash?: (key: K) => H;
 }
 
-export default class LRUMap<K, V> extends LRU<V> {
-  public toHash: (key: K) => any;
-  public fromHash: (hash: any) => K;
+export class LRUHash<K, V, H>  {
+  public toHash: (key: K) => H;
+  public romHash: (hash: H) => K;
 
-  constructor(options: Options<K, V> | number) {
-    // hijack dispose if necessary
-    if (typeof options !== 'number' && options.dispose) {
-      let dispose = options.dispose;
-      options.dispose = (key: K, value: V) => {
-        dispose.call(this, this.fromHash(key), value);
-      };
-    }
+  private valuesLRU: LRUMap<H, V>;
+  private keysLRU: LRUMap<H, K>;
 
-    super(options);
-    this.toHash = JSON.stringify;
-    this.fromHash = JSON.parse;
+  constructor(options: Options<K, H>) {
+    this.valuesLRU = new LRUMap<H, V>(options.limit);
+    this.keysLRU = new LRUMap<H, K>(options.limit);
 
-    if (typeof options !== 'number') {
-      if (options.toHash) {
-        this.toHash = options.toHash;
-      }
-      if (options.fromHash) {
-        this.fromHash = options.fromHash;
-      }
+    if (options.toHash) {
+      this.toHash = options.toHash;
     }
   }
 
-  public set(key: K, value: V, maxAge?: number) {
-    super.set(this.toHash(key), value, maxAge);
+  public set(key: K, value: V) {
+    this.keysLRU.set(this.toHash(key), key);
+    this.valuesLRU.set(this.toHash(key), value);
   }
 
-  public get(key: K) {
-    return super.get(this.toHash(key));
+  public shift(): [K, V] | undefined {
+    let keyShift = this.keysLRU.shift();
+    let valueShift = this.valuesLRU.shift();
+    if (keyShift !== undefined && valueShift !== undefined) {
+      if (keyShift[0] !== valueShift[0]) {
+        console.error(`LRUHash not in sync, shifted key ${keyShift} and value ${valueShift}`);
+      }
+      return [keyShift[1], valueShift[1]];
+    }
+    return undefined;
   }
 
-  public peek(key: K) {
-    return super.peek(this.toHash(key));
+  public get(key: K): V | undefined {
+    this.keysLRU.get(this.toHash(key));
+    return this.valuesLRU.get(this.toHash(key));
   }
 
+  // Does not register recent-cy
   public has(key: K) {
-    return super.has(this.toHash(key));
+    return this.valuesLRU.has(this.toHash(key));
   }
 
-  public del(key: K) {
-    return super.del(this.toHash(key));
+  // Does not register recent-cy
+  public find(key: K) {
+    this.valuesLRU.find(this.toHash(key));
   }
 
-  public forEach(iter: (value: V, key: K, cache: LRU.Cache<V>) => void, thisp?: any) {
-    super.forEach((value: V, key: string, cache: LRU.Cache<V>) => {
-      iter(value, JSON.parse(key), cache);
-    }, thisp);
+  public delete(key: K): V | undefined {
+    this.keysLRU.delete(this.toHash(key));
+    return this.valuesLRU.delete(this.toHash(key));
   }
 
-  public rforEach(iter: (value: V, key: K, cache: LRU.Cache<V>) => void, thisp?: any) {
-    super.rforEach((value: V, key: string, cache: LRU.Cache<V>) => {
-      iter(value, JSON.parse(key), cache);
-    }, thisp);
+  public clear() {
+    this.keysLRU.clear();
+    this.valuesLRU.clear();
+  }
+
+  public keys(): Iterator<K> {
+    return this.keysLRU.values();
+  }
+
+  public values(): Iterator<V> {
+    return this.valuesLRU.values();
+  }
+
+  public forEach(iter: (value: V, key: K, map: LRUHash<K, H, V>) => void, thisArg: any = this) {
+    this.valuesLRU.forEach((value: V, key: H, m: LRUMap<H, V>) => {
+      let originalKey = this.keysLRU.find(key);
+      if (originalKey === undefined) {
+        console.error(`Unable to process ${key}, because hashKey was not found`);
+      } else {
+        iter.call(thisArg, value, originalKey, this);
+      }
+    }, this.valuesLRU);
+  }
+}
+
+export default class LRUHashString<K, V> extends LRUHash<K, V, string> {
+  constructor(options: Options<K, string> | number) {
+    if (typeof options === 'number') {
+      options = { limit: options };
+    }
+    if (options.toHash === undefined) {
+      options.toHash = JSON.stringify;
+    }
+    super(options);
   }
 }

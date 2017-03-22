@@ -67,7 +67,7 @@ SystemJS.config({
     "npm:*.json"
   ],
   map: {
-    "lru-cache": "npm:lru-cache@4.0.2",
+    "lru_map": "npm:lru_map@0.3.3",
     "assert": "npm:jspm-nodelibs-assert@0.2.0",
     "babylonjs": "npm:babylonjs@2.5.0",
     "buffer": "npm:jspm-nodelibs-buffer@0.2.1",
@@ -479,12 +479,6 @@ SystemJS.config({
         "asn1.js": "npm:asn1.js@4.9.1",
         "evp_bytestokey": "npm:evp_bytestokey@1.0.0",
         "create-hash": "npm:create-hash@1.1.2"
-      }
-    },
-    "npm:lru-cache@4.0.2": {
-      "map": {
-        "pseudomap": "npm:pseudomap@1.0.2",
-        "yallist": "npm:yallist@2.1.2"
       }
     }
   }
