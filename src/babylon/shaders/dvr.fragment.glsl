@@ -195,61 +195,354 @@ vec4 calcSmoothColor(vec3 texCoord, float stepsize) {
 
 vec3 calcGradient(vec3 texCoord, float stepsize) {
   vec3 gradient = ZERO3;
-  uint centerSegID = getSegID(texCoord);
+  uint target = getSegID(texCoord);
 
-  // 6 face adjacent voxels
-  if (getSegID(texCoord + stepsize * vec3(-1.0,  0.0,  0.0)) != centerSegID)  { gradient += vec3(-1.0,  0.0,  0.0); }
-  if (getSegID(texCoord + stepsize * vec3( 1.0,  0.0,  0.0)) != centerSegID)  { gradient += vec3( 1.0,  0.0,  0.0); }
-  if (getSegID(texCoord + stepsize * vec3( 0.0, -1.0,  0.0)) != centerSegID)  { gradient += vec3( 0.0, -1.0,  0.0); }
-  if (getSegID(texCoord + stepsize * vec3( 0.0,  1.0,  0.0)) != centerSegID)  { gradient += vec3( 0.0,  1.0,  0.0); }
-  if (getSegID(texCoord + stepsize * vec3( 0.0,  0.0, -1.0)) != centerSegID)  { gradient += vec3( 0.0,  0.0, -1.0); }
-  if (getSegID(texCoord + stepsize * vec3( 0.0,  0.0,  1.0)) != centerSegID)  { gradient += vec3( 0.0,  0.0,  1.0); }
-
-  // 12 edge adjacent voxels
-  if (getSegID(texCoord + stepsize * vec3(-1.0, -1.0,  0.0)) != centerSegID)
-    { gradient += vec3(-SQRT2INV, -SQRT2INV,  0.0); }
-  if (getSegID(texCoord + stepsize * vec3(-1.0,  1.0,  0.0)) != centerSegID)
-    { gradient += vec3(-SQRT2INV,  SQRT2INV,  0.0); }
-  if (getSegID(texCoord + stepsize * vec3( 1.0, -1.0,  0.0)) != centerSegID)
-    { gradient += vec3( SQRT2INV, -SQRT2INV,  0.0); }
-  if (getSegID(texCoord + stepsize * vec3( 1.0,  1.0,  0.0)) != centerSegID)
-    { gradient += vec3( SQRT2INV,  SQRT2INV,  0.0); }
-
-  if (getSegID(texCoord + stepsize * vec3(-1.0,  0.0, -1.0)) != centerSegID)
-    { gradient += vec3(-SQRT2INV,  0.0, -SQRT2INV); }
-  if (getSegID(texCoord + stepsize * vec3(-1.0,  0.0,  1.0)) != centerSegID)
-    { gradient += vec3(-SQRT2INV,  0.0,  SQRT2INV); }
-  if (getSegID(texCoord + stepsize * vec3( 1.0,  0.0, -1.0)) != centerSegID)
-    { gradient += vec3( SQRT2INV,  0.0, -SQRT2INV); }
-  if (getSegID(texCoord + stepsize * vec3( 1.0,  0.0,  1.0)) != centerSegID)
-    { gradient += vec3( SQRT2INV,  0.0,  SQRT2INV); }
-
-  if (getSegID(texCoord + stepsize * vec3( 0.0, -1.0, -1.0)) != centerSegID)
-    { gradient += vec3( 0.0, -SQRT2INV, -SQRT2INV); }
-  if (getSegID(texCoord + stepsize * vec3( 0.0, -1.0,  1.0)) != centerSegID)
-    { gradient += vec3( 0.0, -SQRT2INV,  SQRT2INV); }
-  if (getSegID(texCoord + stepsize * vec3( 0.0,  1.0, -1.0)) != centerSegID)
-    { gradient += vec3( 0.0,  SQRT2INV, -SQRT2INV); }
-  if (getSegID(texCoord + stepsize * vec3( 0.0,  1.0,  1.0)) != centerSegID)
-    { gradient += vec3( 0.0,  SQRT2INV,  SQRT2INV); }
-
-  // 8 corner adjacent voxels
-  if (getSegID(texCoord + stepsize * vec3(-1.0, -1.0, -1.0)) != centerSegID)
-    { gradient += vec3(-SQRT3INV, -SQRT3INV, -SQRT3INV); }
-  if (getSegID(texCoord + stepsize * vec3(-1.0, -1.0,  1.0)) != centerSegID)
-    { gradient += vec3(-SQRT3INV, -SQRT3INV,  SQRT3INV); }
-  if (getSegID(texCoord + stepsize * vec3(-1.0,  1.0, -1.0)) != centerSegID)
-    { gradient += vec3(-SQRT3INV,  SQRT3INV, -SQRT3INV); }
-  if (getSegID(texCoord + stepsize * vec3(-1.0,  1.0,  1.0)) != centerSegID)
-    { gradient += vec3(-SQRT3INV,  SQRT3INV,  SQRT3INV); }
-  if (getSegID(texCoord + stepsize * vec3( 1.0, -1.0, -1.0)) != centerSegID)
-    { gradient += vec3( SQRT3INV, -SQRT3INV, -SQRT3INV); }
-  if (getSegID(texCoord + stepsize * vec3( 1.0, -1.0,  1.0)) != centerSegID)
-    { gradient += vec3( SQRT3INV, -SQRT3INV,  SQRT3INV); }
-  if (getSegID(texCoord + stepsize * vec3( 1.0,  1.0, -1.0)) != centerSegID)
-    { gradient += vec3( SQRT3INV,  SQRT3INV, -SQRT3INV); }
-  if (getSegID(texCoord + stepsize * vec3( 1.0,  1.0,  1.0)) != centerSegID)
-    { gradient += vec3( SQRT3INV,  SQRT3INV,  SQRT3INV); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 0.0, 1.0)) != target) { gradient += 1.0000 * vec3(0.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 0.0, 0.0)) != target) { gradient += 1.0000 * vec3(-1.0, 0.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -1.0, 0.0)) != target) { gradient += 1.0000 * vec3(0.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 1.0, 0.0)) != target) { gradient += 1.0000 * vec3(0.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 0.0, 0.0)) != target) { gradient += 1.0000 * vec3(1.0, 0.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 0.0, -1.0)) != target) { gradient += 1.0000 * vec3(0.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 0.0, 1.0)) != target) { gradient += 0.7071 * vec3(-1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -1.0, 1.0)) != target) { gradient += 0.7071 * vec3(0.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 1.0, 1.0)) != target) { gradient += 0.7071 * vec3(0.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 0.0, 1.0)) != target) { gradient += 0.7071 * vec3(1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -1.0, 0.0)) != target) { gradient += 0.7071 * vec3(-1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 1.0, 0.0)) != target) { gradient += 0.7071 * vec3(-1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -1.0, 0.0)) != target) { gradient += 0.7071 * vec3(1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 1.0, 0.0)) != target) { gradient += 0.7071 * vec3(1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 0.0, -1.0)) != target) { gradient += 0.7071 * vec3(-1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -1.0, -1.0)) != target) { gradient += 0.7071 * vec3(0.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 1.0, -1.0)) != target) { gradient += 0.7071 * vec3(0.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 0.0, -1.0)) != target) { gradient += 0.7071 * vec3(1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -1.0, 1.0)) != target) { gradient += 0.5774 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 1.0, 1.0)) != target) { gradient += 0.5774 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -1.0, 1.0)) != target) { gradient += 0.5774 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 1.0, 1.0)) != target) { gradient += 0.5774 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -1.0, -1.0)) != target) { gradient += 0.5774 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 1.0, -1.0)) != target) { gradient += 0.5774 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -1.0, -1.0)) != target) { gradient += 0.5774 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 1.0, -1.0)) != target) { gradient += 0.5774 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 0.0, 2.0)) != target) { gradient += 0.5000 * vec3(0.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 0.0, 0.0)) != target) { gradient += 0.5000 * vec3(-1.0, 0.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -2.0, 0.0)) != target) { gradient += 0.5000 * vec3(0.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 2.0, 0.0)) != target) { gradient += 0.5000 * vec3(0.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 0.0, 0.0)) != target) { gradient += 0.5000 * vec3(1.0, 0.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 0.0, -2.0)) != target) { gradient += 0.5000 * vec3(0.0, 0.0, -1.0); }
+  
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 0.0, 2.0)) != target) { gradient += 0.4472 * vec3(-1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -1.0, 2.0)) != target) { gradient += 0.4472 * vec3(0.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 1.0, 2.0)) != target) { gradient += 0.4472 * vec3(0.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 0.0, 2.0)) != target) { gradient += 0.4472 * vec3(1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 0.0, 1.0)) != target) { gradient += 0.4472 * vec3(-1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -2.0, 1.0)) != target) { gradient += 0.4472 * vec3(0.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 2.0, 1.0)) != target) { gradient += 0.4472 * vec3(0.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 0.0, 1.0)) != target) { gradient += 0.4472 * vec3(1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -1.0, 0.0)) != target) { gradient += 0.4472 * vec3(-1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 1.0, 0.0)) != target) { gradient += 0.4472 * vec3(-1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -2.0, 0.0)) != target) { gradient += 0.4472 * vec3(-1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 2.0, 0.0)) != target) { gradient += 0.4472 * vec3(-1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -2.0, 0.0)) != target) { gradient += 0.4472 * vec3(1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 2.0, 0.0)) != target) { gradient += 0.4472 * vec3(1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -1.0, 0.0)) != target) { gradient += 0.4472 * vec3(1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 1.0, 0.0)) != target) { gradient += 0.4472 * vec3(1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 0.0, -1.0)) != target) { gradient += 0.4472 * vec3(-1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -2.0, -1.0)) != target) { gradient += 0.4472 * vec3(0.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 2.0, -1.0)) != target) { gradient += 0.4472 * vec3(0.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 0.0, -1.0)) != target) { gradient += 0.4472 * vec3(1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 0.0, -2.0)) != target) { gradient += 0.4472 * vec3(-1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -1.0, -2.0)) != target) { gradient += 0.4472 * vec3(0.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 1.0, -2.0)) != target) { gradient += 0.4472 * vec3(0.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 0.0, -2.0)) != target) { gradient += 0.4472 * vec3(1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -1.0, 2.0)) != target) { gradient += 0.4082 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 1.0, 2.0)) != target) { gradient += 0.4082 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -1.0, 2.0)) != target) { gradient += 0.4082 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 1.0, 2.0)) != target) { gradient += 0.4082 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -1.0, 1.0)) != target) { gradient += 0.4082 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 1.0, 1.0)) != target) { gradient += 0.4082 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -2.0, 1.0)) != target) { gradient += 0.4082 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 2.0, 1.0)) != target) { gradient += 0.4082 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -2.0, 1.0)) != target) { gradient += 0.4082 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 2.0, 1.0)) != target) { gradient += 0.4082 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -1.0, 1.0)) != target) { gradient += 0.4082 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 1.0, 1.0)) != target) { gradient += 0.4082 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -1.0, -1.0)) != target) { gradient += 0.4082 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 1.0, -1.0)) != target) { gradient += 0.4082 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -2.0, -1.0)) != target) { gradient += 0.4082 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 2.0, -1.0)) != target) { gradient += 0.4082 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -2.0, -1.0)) != target) { gradient += 0.4082 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 2.0, -1.0)) != target) { gradient += 0.4082 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -1.0, -1.0)) != target) { gradient += 0.4082 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 1.0, -1.0)) != target) { gradient += 0.4082 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -1.0, -2.0)) != target) { gradient += 0.4082 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 1.0, -2.0)) != target) { gradient += 0.4082 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -1.0, -2.0)) != target) { gradient += 0.4082 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 1.0, -2.0)) != target) { gradient += 0.4082 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 0.0, 2.0)) != target) { gradient += 0.3536 * vec3(-1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -2.0, 2.0)) != target) { gradient += 0.3536 * vec3(0.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 2.0, 2.0)) != target) { gradient += 0.3536 * vec3(0.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 0.0, 2.0)) != target) { gradient += 0.3536 * vec3(1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -2.0, 0.0)) != target) { gradient += 0.3536 * vec3(-1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 2.0, 0.0)) != target) { gradient += 0.3536 * vec3(-1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -2.0, 0.0)) != target) { gradient += 0.3536 * vec3(1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 2.0, 0.0)) != target) { gradient += 0.3536 * vec3(1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 0.0, -2.0)) != target) { gradient += 0.3536 * vec3(-1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -2.0, -2.0)) != target) { gradient += 0.3536 * vec3(0.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 2.0, -2.0)) != target) { gradient += 0.3536 * vec3(0.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 0.0, -2.0)) != target) { gradient += 0.3536 * vec3(1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 0.0, 3.0)) != target) { gradient += 0.3333 * vec3(0.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -1.0, 2.0)) != target) { gradient += 0.3333 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 1.0, 2.0)) != target) { gradient += 0.3333 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -2.0, 2.0)) != target) { gradient += 0.3333 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 2.0, 2.0)) != target) { gradient += 0.3333 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -2.0, 2.0)) != target) { gradient += 0.3333 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 2.0, 2.0)) != target) { gradient += 0.3333 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -1.0, 2.0)) != target) { gradient += 0.3333 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 1.0, 2.0)) != target) { gradient += 0.3333 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -2.0, 1.0)) != target) { gradient += 0.3333 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 2.0, 1.0)) != target) { gradient += 0.3333 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -2.0, 1.0)) != target) { gradient += 0.3333 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 2.0, 1.0)) != target) { gradient += 0.3333 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 0.0, 0.0)) != target) { gradient += 0.3333 * vec3(-1.0, 0.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -3.0, 0.0)) != target) { gradient += 0.3333 * vec3(0.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 3.0, 0.0)) != target) { gradient += 0.3333 * vec3(0.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 0.0, 0.0)) != target) { gradient += 0.3333 * vec3(1.0, 0.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -2.0, -1.0)) != target) { gradient += 0.3333 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 2.0, -1.0)) != target) { gradient += 0.3333 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -2.0, -1.0)) != target) { gradient += 0.3333 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 2.0, -1.0)) != target) { gradient += 0.3333 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -1.0, -2.0)) != target) { gradient += 0.3333 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 1.0, -2.0)) != target) { gradient += 0.3333 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -2.0, -2.0)) != target) { gradient += 0.3333 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 2.0, -2.0)) != target) { gradient += 0.3333 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -2.0, -2.0)) != target) { gradient += 0.3333 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 2.0, -2.0)) != target) { gradient += 0.3333 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -1.0, -2.0)) != target) { gradient += 0.3333 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 1.0, -2.0)) != target) { gradient += 0.3333 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 0.0, -3.0)) != target) { gradient += 0.3333 * vec3(0.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 0.0, 3.0)) != target) { gradient += 0.3162 * vec3(-1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -1.0, 3.0)) != target) { gradient += 0.3162 * vec3(0.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 1.0, 3.0)) != target) { gradient += 0.3162 * vec3(0.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 0.0, 3.0)) != target) { gradient += 0.3162 * vec3(1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 0.0, 1.0)) != target) { gradient += 0.3162 * vec3(-1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -3.0, 1.0)) != target) { gradient += 0.3162 * vec3(0.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 3.0, 1.0)) != target) { gradient += 0.3162 * vec3(0.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 0.0, 1.0)) != target) { gradient += 0.3162 * vec3(1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -1.0, 0.0)) != target) { gradient += 0.3162 * vec3(-1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 1.0, 0.0)) != target) { gradient += 0.3162 * vec3(-1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -3.0, 0.0)) != target) { gradient += 0.3162 * vec3(-1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 3.0, 0.0)) != target) { gradient += 0.3162 * vec3(-1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -3.0, 0.0)) != target) { gradient += 0.3162 * vec3(1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 3.0, 0.0)) != target) { gradient += 0.3162 * vec3(1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -1.0, 0.0)) != target) { gradient += 0.3162 * vec3(1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 1.0, 0.0)) != target) { gradient += 0.3162 * vec3(1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 0.0, -1.0)) != target) { gradient += 0.3162 * vec3(-1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -3.0, -1.0)) != target) { gradient += 0.3162 * vec3(0.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 3.0, -1.0)) != target) { gradient += 0.3162 * vec3(0.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 0.0, -1.0)) != target) { gradient += 0.3162 * vec3(1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 0.0, -3.0)) != target) { gradient += 0.3162 * vec3(-1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -1.0, -3.0)) != target) { gradient += 0.3162 * vec3(0.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 1.0, -3.0)) != target) { gradient += 0.3162 * vec3(0.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 0.0, -3.0)) != target) { gradient += 0.3162 * vec3(1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -1.0, 3.0)) != target) { gradient += 0.3015 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 1.0, 3.0)) != target) { gradient += 0.3015 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -1.0, 3.0)) != target) { gradient += 0.3015 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 1.0, 3.0)) != target) { gradient += 0.3015 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -1.0, 1.0)) != target) { gradient += 0.3015 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 1.0, 1.0)) != target) { gradient += 0.3015 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -3.0, 1.0)) != target) { gradient += 0.3015 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 3.0, 1.0)) != target) { gradient += 0.3015 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -3.0, 1.0)) != target) { gradient += 0.3015 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 3.0, 1.0)) != target) { gradient += 0.3015 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -1.0, 1.0)) != target) { gradient += 0.3015 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 1.0, 1.0)) != target) { gradient += 0.3015 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -1.0, -1.0)) != target) { gradient += 0.3015 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 1.0, -1.0)) != target) { gradient += 0.3015 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -3.0, -1.0)) != target) { gradient += 0.3015 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 3.0, -1.0)) != target) { gradient += 0.3015 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -3.0, -1.0)) != target) { gradient += 0.3015 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 3.0, -1.0)) != target) { gradient += 0.3015 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -1.0, -1.0)) != target) { gradient += 0.3015 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 1.0, -1.0)) != target) { gradient += 0.3015 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -1.0, -3.0)) != target) { gradient += 0.3015 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 1.0, -3.0)) != target) { gradient += 0.3015 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -1.0, -3.0)) != target) { gradient += 0.3015 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 1.0, -3.0)) != target) { gradient += 0.3015 * vec3(1.0, 1.0, -1.0); }
+  
+  /*
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -2.0, 2.0)) != target) { gradient += 0.2887 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 2.0, 2.0)) != target) { gradient += 0.2887 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -2.0, 2.0)) != target) { gradient += 0.2887 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 2.0, 2.0)) != target) { gradient += 0.2887 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -2.0, -2.0)) != target) { gradient += 0.2887 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 2.0, -2.0)) != target) { gradient += 0.2887 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -2.0, -2.0)) != target) { gradient += 0.2887 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 2.0, -2.0)) != target) { gradient += 0.2887 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 0.0, 3.0)) != target) { gradient += 0.2774 * vec3(-1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -2.0, 3.0)) != target) { gradient += 0.2774 * vec3(0.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 2.0, 3.0)) != target) { gradient += 0.2774 * vec3(0.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 0.0, 3.0)) != target) { gradient += 0.2774 * vec3(1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 0.0, 2.0)) != target) { gradient += 0.2774 * vec3(-1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -3.0, 2.0)) != target) { gradient += 0.2774 * vec3(0.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 3.0, 2.0)) != target) { gradient += 0.2774 * vec3(0.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 0.0, 2.0)) != target) { gradient += 0.2774 * vec3(1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -2.0, 0.0)) != target) { gradient += 0.2774 * vec3(-1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 2.0, 0.0)) != target) { gradient += 0.2774 * vec3(-1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -3.0, 0.0)) != target) { gradient += 0.2774 * vec3(-1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 3.0, 0.0)) != target) { gradient += 0.2774 * vec3(-1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -3.0, 0.0)) != target) { gradient += 0.2774 * vec3(1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 3.0, 0.0)) != target) { gradient += 0.2774 * vec3(1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -2.0, 0.0)) != target) { gradient += 0.2774 * vec3(1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 2.0, 0.0)) != target) { gradient += 0.2774 * vec3(1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 0.0, -2.0)) != target) { gradient += 0.2774 * vec3(-1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -3.0, -2.0)) != target) { gradient += 0.2774 * vec3(0.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 3.0, -2.0)) != target) { gradient += 0.2774 * vec3(0.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 0.0, -2.0)) != target) { gradient += 0.2774 * vec3(1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 0.0, -3.0)) != target) { gradient += 0.2774 * vec3(-1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -2.0, -3.0)) != target) { gradient += 0.2774 * vec3(0.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 2.0, -3.0)) != target) { gradient += 0.2774 * vec3(0.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 0.0, -3.0)) != target) { gradient += 0.2774 * vec3(1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -1.0, 3.0)) != target) { gradient += 0.2673 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 1.0, 3.0)) != target) { gradient += 0.2673 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -2.0, 3.0)) != target) { gradient += 0.2673 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 2.0, 3.0)) != target) { gradient += 0.2673 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -2.0, 3.0)) != target) { gradient += 0.2673 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 2.0, 3.0)) != target) { gradient += 0.2673 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -1.0, 3.0)) != target) { gradient += 0.2673 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 1.0, 3.0)) != target) { gradient += 0.2673 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -1.0, 2.0)) != target) { gradient += 0.2673 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 1.0, 2.0)) != target) { gradient += 0.2673 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -3.0, 2.0)) != target) { gradient += 0.2673 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 3.0, 2.0)) != target) { gradient += 0.2673 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -3.0, 2.0)) != target) { gradient += 0.2673 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 3.0, 2.0)) != target) { gradient += 0.2673 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -1.0, 2.0)) != target) { gradient += 0.2673 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 1.0, 2.0)) != target) { gradient += 0.2673 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -2.0, 1.0)) != target) { gradient += 0.2673 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 2.0, 1.0)) != target) { gradient += 0.2673 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -3.0, 1.0)) != target) { gradient += 0.2673 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 3.0, 1.0)) != target) { gradient += 0.2673 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -3.0, 1.0)) != target) { gradient += 0.2673 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 3.0, 1.0)) != target) { gradient += 0.2673 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -2.0, 1.0)) != target) { gradient += 0.2673 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 2.0, 1.0)) != target) { gradient += 0.2673 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -2.0, -1.0)) != target) { gradient += 0.2673 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 2.0, -1.0)) != target) { gradient += 0.2673 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -3.0, -1.0)) != target) { gradient += 0.2673 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 3.0, -1.0)) != target) { gradient += 0.2673 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -3.0, -1.0)) != target) { gradient += 0.2673 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 3.0, -1.0)) != target) { gradient += 0.2673 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -2.0, -1.0)) != target) { gradient += 0.2673 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 2.0, -1.0)) != target) { gradient += 0.2673 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -1.0, -2.0)) != target) { gradient += 0.2673 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 1.0, -2.0)) != target) { gradient += 0.2673 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -3.0, -2.0)) != target) { gradient += 0.2673 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 3.0, -2.0)) != target) { gradient += 0.2673 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -3.0, -2.0)) != target) { gradient += 0.2673 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 3.0, -2.0)) != target) { gradient += 0.2673 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -1.0, -2.0)) != target) { gradient += 0.2673 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 1.0, -2.0)) != target) { gradient += 0.2673 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -1.0, -3.0)) != target) { gradient += 0.2673 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 1.0, -3.0)) != target) { gradient += 0.2673 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -2.0, -3.0)) != target) { gradient += 0.2673 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 2.0, -3.0)) != target) { gradient += 0.2673 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -2.0, -3.0)) != target) { gradient += 0.2673 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 2.0, -3.0)) != target) { gradient += 0.2673 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -1.0, -3.0)) != target) { gradient += 0.2673 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 1.0, -3.0)) != target) { gradient += 0.2673 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -2.0, 3.0)) != target) { gradient += 0.2425 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 2.0, 3.0)) != target) { gradient += 0.2425 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -2.0, 3.0)) != target) { gradient += 0.2425 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 2.0, 3.0)) != target) { gradient += 0.2425 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -2.0, 2.0)) != target) { gradient += 0.2425 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 2.0, 2.0)) != target) { gradient += 0.2425 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -3.0, 2.0)) != target) { gradient += 0.2425 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 3.0, 2.0)) != target) { gradient += 0.2425 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -3.0, 2.0)) != target) { gradient += 0.2425 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 3.0, 2.0)) != target) { gradient += 0.2425 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -2.0, 2.0)) != target) { gradient += 0.2425 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 2.0, 2.0)) != target) { gradient += 0.2425 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -2.0, -2.0)) != target) { gradient += 0.2425 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 2.0, -2.0)) != target) { gradient += 0.2425 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -3.0, -2.0)) != target) { gradient += 0.2425 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 3.0, -2.0)) != target) { gradient += 0.2425 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -3.0, -2.0)) != target) { gradient += 0.2425 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 3.0, -2.0)) != target) { gradient += 0.2425 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -2.0, -2.0)) != target) { gradient += 0.2425 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 2.0, -2.0)) != target) { gradient += 0.2425 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -2.0, -3.0)) != target) { gradient += 0.2425 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 2.0, -3.0)) != target) { gradient += 0.2425 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -2.0, -3.0)) != target) { gradient += 0.2425 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 2.0, -3.0)) != target) { gradient += 0.2425 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 0.0, 3.0)) != target) { gradient += 0.2357 * vec3(-1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -3.0, 3.0)) != target) { gradient += 0.2357 * vec3(0.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 3.0, 3.0)) != target) { gradient += 0.2357 * vec3(0.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 0.0, 3.0)) != target) { gradient += 0.2357 * vec3(1.0, 0.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -3.0, 0.0)) != target) { gradient += 0.2357 * vec3(-1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 3.0, 0.0)) != target) { gradient += 0.2357 * vec3(-1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -3.0, 0.0)) != target) { gradient += 0.2357 * vec3(1.0, -1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 3.0, 0.0)) != target) { gradient += 0.2357 * vec3(1.0, 1.0, 0.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 0.0, -3.0)) != target) { gradient += 0.2357 * vec3(-1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, -3.0, -3.0)) != target) { gradient += 0.2357 * vec3(0.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(0.0, 3.0, -3.0)) != target) { gradient += 0.2357 * vec3(0.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 0.0, -3.0)) != target) { gradient += 0.2357 * vec3(1.0, 0.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -1.0, 3.0)) != target) { gradient += 0.2294 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 1.0, 3.0)) != target) { gradient += 0.2294 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -3.0, 3.0)) != target) { gradient += 0.2294 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 3.0, 3.0)) != target) { gradient += 0.2294 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -3.0, 3.0)) != target) { gradient += 0.2294 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 3.0, 3.0)) != target) { gradient += 0.2294 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -1.0, 3.0)) != target) { gradient += 0.2294 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 1.0, 3.0)) != target) { gradient += 0.2294 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -3.0, 1.0)) != target) { gradient += 0.2294 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 3.0, 1.0)) != target) { gradient += 0.2294 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -3.0, 1.0)) != target) { gradient += 0.2294 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 3.0, 1.0)) != target) { gradient += 0.2294 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -3.0, -1.0)) != target) { gradient += 0.2294 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 3.0, -1.0)) != target) { gradient += 0.2294 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -3.0, -1.0)) != target) { gradient += 0.2294 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 3.0, -1.0)) != target) { gradient += 0.2294 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -1.0, -3.0)) != target) { gradient += 0.2294 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 1.0, -3.0)) != target) { gradient += 0.2294 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, -3.0, -3.0)) != target) { gradient += 0.2294 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-1.0, 3.0, -3.0)) != target) { gradient += 0.2294 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, -3.0, -3.0)) != target) { gradient += 0.2294 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(1.0, 3.0, -3.0)) != target) { gradient += 0.2294 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -1.0, -3.0)) != target) { gradient += 0.2294 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 1.0, -3.0)) != target) { gradient += 0.2294 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -2.0, 3.0)) != target) { gradient += 0.2132 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 2.0, 3.0)) != target) { gradient += 0.2132 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -3.0, 3.0)) != target) { gradient += 0.2132 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 3.0, 3.0)) != target) { gradient += 0.2132 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -3.0, 3.0)) != target) { gradient += 0.2132 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 3.0, 3.0)) != target) { gradient += 0.2132 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -2.0, 3.0)) != target) { gradient += 0.2132 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 2.0, 3.0)) != target) { gradient += 0.2132 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -3.0, 2.0)) != target) { gradient += 0.2132 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 3.0, 2.0)) != target) { gradient += 0.2132 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -3.0, 2.0)) != target) { gradient += 0.2132 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 3.0, 2.0)) != target) { gradient += 0.2132 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -3.0, -2.0)) != target) { gradient += 0.2132 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 3.0, -2.0)) != target) { gradient += 0.2132 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -3.0, -2.0)) != target) { gradient += 0.2132 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 3.0, -2.0)) != target) { gradient += 0.2132 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -2.0, -3.0)) != target) { gradient += 0.2132 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 2.0, -3.0)) != target) { gradient += 0.2132 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, -3.0, -3.0)) != target) { gradient += 0.2132 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-2.0, 3.0, -3.0)) != target) { gradient += 0.2132 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, -3.0, -3.0)) != target) { gradient += 0.2132 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(2.0, 3.0, -3.0)) != target) { gradient += 0.2132 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -2.0, -3.0)) != target) { gradient += 0.2132 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 2.0, -3.0)) != target) { gradient += 0.2132 * vec3(1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -3.0, 3.0)) != target) { gradient += 0.1925 * vec3(-1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 3.0, 3.0)) != target) { gradient += 0.1925 * vec3(-1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -3.0, 3.0)) != target) { gradient += 0.1925 * vec3(1.0, -1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 3.0, 3.0)) != target) { gradient += 0.1925 * vec3(1.0, 1.0, 1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, -3.0, -3.0)) != target) { gradient += 0.1925 * vec3(-1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(-3.0, 3.0, -3.0)) != target) { gradient += 0.1925 * vec3(-1.0, 1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, -3.0, -3.0)) != target) { gradient += 0.1925 * vec3(1.0, -1.0, -1.0); }
+  if (getSegID(texCoord + stepsize * vec3(3.0, 3.0, -3.0)) != target) { gradient += 0.1925 * vec3(1.0, 1.0, -1.0); }
+  */
 
   return gradient;
 }
@@ -365,7 +658,7 @@ void main() {
     float curStepsize = calcStepsize(distance(pos, frontPos));
 
     if (isVisible(segID)) {
-      vec3 normal = normalize(calcGradient(pos, 1.0 * curStepsize));
+      vec3 normal = normalize(calcGradient(pos, 0.5 / 256.0));
       vec3 camDir = -dir;
       //vec3 basecol = calcSmoothColor(pos, 1.0 / 256.0).rgb;
       vec3 basecol = segColor(segID).rgb;
