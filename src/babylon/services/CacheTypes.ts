@@ -1,4 +1,5 @@
 import * as Vec3Simple from './Vec3Simple';
+import { HashStringMap } from './map/HashMap';
 
 /*
  * Although it'll be safer to use classes with guard variables, using object literals are necessary to achieve
@@ -75,51 +76,91 @@ export interface SizePower extends Vec3Simple.Vec3, Size, Power {
 }
 
 /*
+ * Size in terms of voxels in world space
+ */
+export interface SizeWorld extends Size, WorldSpace {
+}
+
+/*
  * Size in terms of number of blocks within a cache
  */
-export interface SizeBlock extends Vec3Simple.Vec3, Size, CacheSpace {
+export interface SizeCache extends Size, CacheSpace {
+}
+
+/*
+ * Interfaces for size in world or size in cache blocks
+ */
+export interface PageBlockSize extends SizeCache, Scaled<PageBlockScale> {
+}
+
+export interface VoxelBlockSize extends SizeCache, Scaled<VoxelBlockScale> {
+}
+
+export interface PageTableSize extends SizeWorld, Scaled<PageBlockScale> {
+}
+
+export interface VoxelCacheSize extends SizeWorld, Scaled<VoxelBlockScale> {
+}
+
+/*
+ * Interfaces to describe coordinates
+ */
+export interface WorldCoordinates extends Vec3Simple.Vec3, WorldSpace {
+}
+
+export interface CacheCoordinates extends Vec3Simple.Vec3, CacheSpace {
 }
 
 /*
  * Coordinates for an individual voxel in the entire dataset
  */
-export interface VoxelCoordinates extends Vec3Simple.Vec3, WorldSpace, Scaled<VoxelScale> {
+export interface VoxelCoordinates extends WorldCoordinates, Scaled<VoxelScale> {
 }
 
 /*
  * Coordinates for a voxel block in the entire dataset
  */
-export interface VoxelBlockCoordinates extends Vec3Simple.Vec3, WorldSpace, Scaled<VoxelBlockScale> {
+export interface VoxelBlockCoordinates extends WorldCoordinates, Scaled<VoxelBlockScale> {
 }
 
 /*
  * Coordinates for a page table in the entire dataset
  */
-export interface PageBlockCoordinates extends Vec3Simple.Vec3, WorldSpace, Scaled<PageBlockScale> {
+export interface PageBlockCoordinates extends WorldCoordinates, Scaled<PageBlockScale> {
 }
 
 /*
  * Block coordinates within the voxel cache
  */
-export interface VoxelCacheBlock extends Vec3Simple.Vec3, CacheSpace, Scaled<VoxelBlockScale> {
+export interface VoxelCacheBlockCoordinates extends CacheCoordinates, Scaled<VoxelBlockScale> {
 }
 
 /*
  * Block coordinates within the page table
  */
-export interface PageTableBlock extends Vec3Simple.Vec3, CacheSpace, Scaled<PageBlockScale> {
+export interface PageTableCacheBlockCoordinates extends CacheCoordinates, Scaled<PageBlockScale> {
 }
 
-export interface BlockInfo<T> {
-  block: T;
+export interface CacheBlock<U extends CacheCoordinates, V extends CacheInfo<S>, S extends Scale> {
+  block: U;
+  data: V;
 }
 
-export interface VoxelBlockInfo extends BlockInfo<VoxelCacheBlock> {
-  pageTableBlock: PageTableBlock;
+export interface VoxelCacheBlock extends
+  CacheBlock<VoxelCacheBlockCoordinates, VoxelCacheInfo, VoxelBlockScale> {}
+export interface PageTableCacheBlock extends
+  CacheBlock<PageTableCacheBlockCoordinates, PageTableInfo, PageBlockScale> {}
+
+export interface CacheInfo<S extends Scale> extends Scaled<S> {
+  readonly cache_info_guard: boolean;
 }
 
-export interface PageBlockInfo extends BlockInfo<PageTableBlock> {
-  size: number;
+export interface VoxelCacheInfo extends CacheInfo<VoxelBlockScale> {
+  pageBlockCoordinates: PageBlockCoordinates;
+}
+
+export interface PageTableInfo extends CacheInfo<PageBlockScale> {
+  mappedVoxelBlockCoordinates: HashStringMap<VoxelBlockCoordinates, boolean>;
 }
 
 /*
