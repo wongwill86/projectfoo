@@ -7,11 +7,11 @@ from './CacheTypes';
 /*
  * Arbitrary fake update function that doubles the page block coordinates of we are updating, otherwise set it to 1,1,1
  */
-const createData = (block?: VoxelCacheBlock): VoxelCacheInfo => {
-  if (block === undefined) {
+const createInfo = (info?: VoxelCacheInfo): VoxelCacheInfo => {
+  if (info === undefined) {
     return { pageBlockCoordinates: { x: 1, y: 1, z: 1 } } as VoxelCacheInfo;
   } else {
-    return { pageBlockCoordinates: Vec3Simple.add(block.data.pageBlockCoordinates, block.data.pageBlockCoordinates),
+    return { pageBlockCoordinates: Vec3Simple.add(info.pageBlockCoordinates, info.pageBlockCoordinates),
     } as VoxelCacheInfo;
   }
 };
@@ -24,47 +24,64 @@ test('Initializes with correct amount of free blocks', () => {
   expect(registry.numberFreeBlocks).toBe(4 ** 3);
 });
 
-test('Values are set and can be retrieved', () => {
+test('Values are set from free blocks and can be retrieved via \'get\' and \'find\'', () => {
   let dim = 2;
   let registry = createBlockRegistry<
     VoxelBlockCoordinates, VoxelCacheBlockCoordinates, VoxelCacheBlock, VoxelBlockScale>(
     Vec3Simple.Vec3(dim) as SizeCache);
-  let lru = registry.lru;
   let coordinates = Vec3Simple.Vec3(1) as VoxelBlockCoordinates;
-  registry.set(coordinates, createData);
-  expect(lru.has(coordinates)).toBeTruthy();
+  registry.set(coordinates, createInfo);
   expect(registry.get(coordinates)).not.toBeUndefined();
+  expect(registry.find(coordinates)).not.toBeUndefined();
 });
 
-test('Values are shifted out of free memory correctly and the update function is correctly called', () => {
+test('Values are shifted out of free memory correctly and the create function is correctly called', () => {
   let dim = 2;
   let registry = createBlockRegistry<
     VoxelBlockCoordinates, VoxelCacheBlockCoordinates, VoxelCacheBlock, VoxelBlockScale>(
     Vec3Simple.Vec3(dim) as SizeCache);
-  let lru = registry.lru;
   // Use up all blocks
   let firstCoordinates = Vec3Simple.Vec3(0) as VoxelBlockCoordinates;
-  registry.set(firstCoordinates, createData);
+  registry.set(firstCoordinates, createInfo);
 
   for (let i = 1; i < dim ** 3; i ++) {
     let coordinates = Vec3Simple.Vec3(i) as VoxelBlockCoordinates;
-    registry.set(coordinates, createData);
+    registry.set(coordinates, createInfo);
   }
   expect(registry.numberFreeBlocks).toBe(0);
 
   // extract the block info generated from setting (i.e. the free block that was assigned);
-  let firstInfo = lru.find(firstCoordinates);
-  expect(firstInfo).not.toBeUndefined();
-  expect(firstInfo!.data.pageBlockCoordinates).toMatchObject({ x: 1, y: 1, z: 1 });
+  let firstBlock = registry.find(firstCoordinates);
+  expect(firstBlock).not.toBeUndefined();
+  expect(firstBlock!.info.pageBlockCoordinates).toMatchObject({ x: 1, y: 1, z: 1 });
 
 
   // add one more to shift out the first coordinate
   let coordinates = Vec3Simple.Vec3(8) as VoxelBlockCoordinates;
-  let removedInfo = registry.set(coordinates, createData);
-  expect(removedInfo!.data.pageBlockCoordinates).toMatchObject({ x: 1, y: 1, z: 1 });
+  let removedInfo = registry.set(coordinates, createInfo);
+  expect(removedInfo!.info.pageBlockCoordinates).toMatchObject({ x: 1, y: 1, z: 1 });
 
   // ensure that the blockInfo for the stored block is a new updated one
   let storedInfo = registry.find(coordinates);
   expect(storedInfo).not.toBeUndefined();
-  expect(storedInfo!.data.pageBlockCoordinates).toMatchObject({ x: 2, y: 2, z: 2 });
+  expect(storedInfo!.info.pageBlockCoordinates).toMatchObject({ x: 1, y: 1, z: 1 });
+});
+
+test('Info is updated when key is called/touched for LRU', () => {
+  let dim = 2;
+  let registry = createBlockRegistry<
+    VoxelBlockCoordinates, VoxelCacheBlockCoordinates, VoxelCacheBlock, VoxelBlockScale>(
+    Vec3Simple.Vec3(dim) as SizeCache);
+  // Use up all blocks
+  let firstCoordinates = Vec3Simple.Vec3(0) as VoxelBlockCoordinates;
+  registry.set(firstCoordinates, createInfo);
+
+  // set again to touch update LRU
+  registry.set(firstCoordinates, createInfo);
+
+  // extract the block info generated from setting (i.e. the free block that was assigned);
+  let firstBlock = registry.find(firstCoordinates);
+  expect(firstBlock).not.toBeUndefined();
+  expect(firstBlock!.info.pageBlockCoordinates).toMatchObject({ x: 2, y: 2, z: 2 });
+
 });

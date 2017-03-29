@@ -31,9 +31,9 @@ export class BlockRegistry<
     CacheCoordinatesScaled extends CacheCoordinates & Scaled<S>,
     Block extends CacheBlock<CacheCoordinatesScaled, CacheInfo<S>, S>,
     S extends Scale> {
-  private readonly freeBlocks: Block[] = [];
+  protected readonly freeBlocks: Block[] = [];
 
-  constructor(public size: SizeCache, public lru: LRUHashString<WorldCoordinatesScaled, Block>) {
+  constructor(public size: SizeCache, protected lru: LRUHashString<WorldCoordinatesScaled, Block>) {
     for (let x = 0; x < size.x; x ++) {
       for (let y = 0; y < size.y; y ++) {
         for (let z = 0; z < size.z; z ++) {
@@ -45,6 +45,10 @@ export class BlockRegistry<
 
   public get numberFreeBlocks(): number {
     return this.freeBlocks.length;
+  }
+
+  public get numberRegisteredBlocks(): number {
+    return this.lru.size;
   }
 
   public get(worldCoordinates: WorldCoordinatesScaled): Block | undefined {
@@ -62,12 +66,15 @@ export class BlockRegistry<
    * update the cache with world Coordinates.
    * Returns a cacheBlock of any block that is replaced.
    */
-  public set(worldCoordinates: WorldCoordinatesScaled, createData: (data?: Block) => CacheInfo<S>): Block | undefined {
+  public set(worldCoordinates: WorldCoordinatesScaled,
+             createInfo: (info?: CacheInfo<S>) => CacheInfo<S>): Block | undefined {
     let oldBlock = this.lru.get(worldCoordinates);
 
     // touch the coordinates in the LRU to update most recent.
-    // if it exists in the lru, we can just return no blockes // replaced
+    // if it exists in the lru, we can just run create info with old data and return
     if (oldBlock !== undefined) {
+      // update the info with the createInfo function
+      oldBlock.info = createInfo(oldBlock.info);
       return undefined;
     }
 
@@ -75,9 +82,9 @@ export class BlockRegistry<
     // First try by looking in our list of free blocks
     let freeBlock = this.freeBlocks.pop();
 
-    // Free block was found from free block list, set this new block with the correct data
+    // Free block was found from free block list, set free block with newly created info
     if (freeBlock !== undefined) {
-      freeBlock.data = createData();
+      freeBlock.info = createInfo();
       this.lru.set(worldCoordinates, freeBlock);
       return undefined;
     }
@@ -97,8 +104,9 @@ export class BlockRegistry<
     // make a copy of this block to return
     let removedBlock = this.copy(freeBlock);
 
-    // Don't need to create a new free block, reuse old reference and change data
-    freeBlock.data = createData(removedBlock);
+    // Don't need to createInfo a new free block, reuse old reference block and set it with newly created info
+    freeBlock.info = createInfo();
+
     // set the free block with the new key
     this.lru.set(worldCoordinates, freeBlock);
 
@@ -115,7 +123,24 @@ export class BlockRegistry<
     return block;
   }
 
-  public copy(info: Block): Block {
-    return { block: info.block, data: info.data } as Block;
+  /*
+   * Copy a CacheBlock superficially.
+   * For now we don't need a deep copy, since we don't return a new info object
+   */
+  public copy(block: Block): Block {
+    return { block: block.block, info: block.info } as Block;
   }
+
+  public toString() {
+    let str: string = '';
+    let iter = this.lru.entries();
+    // iterator requires tsconfig downlevelIteration, but only available in TS nightly currently (TS > 2.2)
+    for (let i = iter.next(); !i.done; i = iter.next()) {
+      str += `(${JSON.stringify(i.value[0])}: ${JSON.stringify(i.value[1])}),  `;
+      console.log(i.value[1].info);
+      //for (let i.value[1].info.mappedVoxelBlockCoordinates)
+    }
+    return str;
+  }
+
 }

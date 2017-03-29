@@ -143,7 +143,7 @@ export interface PageTableCacheBlockCoordinates extends CacheCoordinates, Scaled
 
 export interface CacheBlock<U extends CacheCoordinates, V extends CacheInfo<S>, S extends Scale> {
   block: U;
-  data: V;
+  info: V;
 }
 
 export interface VoxelCacheBlock extends
@@ -157,6 +157,7 @@ export interface CacheInfo<S extends Scale> extends Scaled<S> {
 
 export interface VoxelCacheInfo extends CacheInfo<VoxelBlockScale> {
   pageBlockCoordinates: PageBlockCoordinates;
+  voxelBlockCoordinates: VoxelBlockCoordinates;
 }
 
 export interface PageTableInfo extends CacheInfo<PageBlockScale> {
