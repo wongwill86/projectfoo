@@ -7,7 +7,7 @@ import { SizeWorld, SizePower, toPowerTwo,
   VoxelCacheBlockCoordinates, PageTableCacheBlockCoordinates,
   VoxelCacheBlock, PageTableCacheBlock,
   VoxelCacheInfo, PageTableInfo,
-  VoxelBlockScale, PageBlockScale,
+  VoxelBlockScale, PageBlockScale, PageDirectoryScale,
 } from './CacheTypes';
 
 
@@ -46,8 +46,11 @@ export default class CacheRegistry {
       return { mappedVoxelBlockCoordinates } as PageTableInfo;
     }
 
-  constructor(public readonly pageTableSize: SizeWorld, public readonly voxelCacheSize: SizeWorld,
-              public readonly pageBlockSize: SizeWorld, public readonly voxelBlockSize: SizeWorld) {
+  constructor(public readonly pageTableSize: SizeWorld<PageBlockScale>,
+              public readonly voxelCacheSize: SizeWorld<VoxelBlockScale>,
+              public readonly pageBlockSize: SizeWorld<PageBlockScale>,
+              public readonly voxelBlockSize: SizeWorld<VoxelBlockScale>,
+              public readonly datasetSize?: SizeWorld<PageDirectoryScale>) {
     // TODO verify all sizes are powers of 2!
     // TODO verify pagetableblocksize actually fits in page table size!
 

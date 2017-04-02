@@ -70,6 +70,13 @@ export interface PageBlockScale extends Scale {
 }
 
 /*
+ * Extend this to indicate this is a page directory scale
+ */
+export interface PageDirectoryScale extends Scale {
+  readonly _page_directory_scale_guard: boolean;
+}
+
+/*
  * Size in power of two
  */
 export interface SizePower extends Vec3Simple.Vec3, Size, Power {
@@ -78,28 +85,13 @@ export interface SizePower extends Vec3Simple.Vec3, Size, Power {
 /*
  * Size in terms of voxels in world space
  */
-export interface SizeWorld extends Size, WorldSpace {
+export interface SizeWorld<S extends Scale> extends Size, WorldSpace, Scaled<S> {
 }
 
 /*
  * Size in terms of number of blocks within a cache
  */
-export interface SizeCache extends Size, CacheSpace {
-}
-
-/*
- * Interfaces for size in world or size in cache blocks
- */
-export interface PageBlockSize extends SizeCache, Scaled<PageBlockScale> {
-}
-
-export interface VoxelBlockSize extends SizeCache, Scaled<VoxelBlockScale> {
-}
-
-export interface PageTableSize extends SizeWorld, Scaled<PageBlockScale> {
-}
-
-export interface VoxelCacheSize extends SizeWorld, Scaled<VoxelBlockScale> {
+export interface SizeCache<S extends Scale> extends Size, CacheSpace, Scaled<S> {
 }
 
 /*

@@ -8,14 +8,15 @@ export default function createBlockRegistry<
     WorldCoordinatesScaled extends WorldCoordinates & Scaled<S>,
     CacheCoordinatesScaled extends CacheCoordinates & Scaled<S>,
     Block extends CacheBlock<CacheCoordinatesScaled, CacheInfo<S>, S>,
-    S extends Scale>(sizeWorld: SizeWorld | SizeCache, sizeBlock?: SizeWorld): BlockRegistry<WorldCoordinatesScaled,
-    CacheCoordinatesScaled, Block, S> {
+    S extends Scale>(
+      sizeWorld: SizeWorld<S> | SizeCache<S>, sizeBlock?: SizeWorld<S>): BlockRegistry<
+        WorldCoordinatesScaled, CacheCoordinatesScaled, Block, S> {
 
-  let sizeCache: SizeCache;
+  let sizeCache: SizeCache<S>;
   if (sizeBlock === undefined) {
-    sizeCache = sizeWorld as SizeCache;
+    sizeCache = sizeWorld as SizeCache<S>;
   } else {
-    sizeCache = Vec3Simple.strip(Vec3Simple.divide(sizeWorld, sizeBlock)) as SizeCache;
+    sizeCache = Vec3Simple.strip(Vec3Simple.divide(sizeWorld, sizeBlock)) as SizeCache<S>;
   }
 
   let options  = {
@@ -34,7 +35,7 @@ export class BlockRegistry<
     S extends Scale> {
   protected readonly freeBlocks: Block[] = [];
 
-  constructor(public size: SizeCache, protected lru: LRUCustomHash<WorldCoordinatesScaled, Block, any>) {
+  constructor(public size: SizeCache<S>, protected lru: LRUCustomHash<WorldCoordinatesScaled, Block, any>) {
     for (let x = 0; x < size.x; x ++) {
       for (let y = 0; y < size.y; y ++) {
         for (let z = 0; z < size.z; z ++) {

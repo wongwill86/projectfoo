@@ -3,13 +3,14 @@ import * as Vec3Simple from './Vec3Simple';
 import { SizeWorld,
   VoxelCoordinates,
   VoxelBlockCoordinates, PageBlockCoordinates,
+  VoxelBlockScale, PageBlockScale, PageDirectoryScale,
 } from './CacheTypes';
 
 const defaultSize = 128;
-const defaultPageTableSize = Vec3Simple.Vec3(defaultSize) as SizeWorld;
-const defaultVoxelCacheSize = Vec3Simple.Vec3(defaultSize) as SizeWorld;
-const defaultPageBlockSize = Vec3Simple.Vec3(defaultSize) as SizeWorld;
-const defaultVoxelBlockSize = Vec3Simple.Vec3(defaultSize) as SizeWorld;
+const defaultPageTableSize = Vec3Simple.Vec3(defaultSize) as SizeWorld<PageBlockScale>;
+const defaultVoxelCacheSize = Vec3Simple.Vec3(defaultSize) as SizeWorld<VoxelBlockScale>;
+const defaultPageBlockSize = Vec3Simple.Vec3(defaultSize) as SizeWorld<PageBlockScale>;
+const defaultVoxelBlockSize = Vec3Simple.Vec3(defaultSize) as SizeWorld<VoxelBlockScale>;
 
 function constructDefaultCacheRegistry() {
   return new CacheRegistry(defaultPageTableSize, defaultVoxelCacheSize,
@@ -23,11 +24,9 @@ test('Construction doesn\'t throw', () => {
 });
 
 test('Converts coordinates to correct voxel block coordinates', () => {
-  let pageBlockSize = 32;
-  let voxelBlockSize = 16;
-  let cacheRegistry = new CacheRegistry(defaultPageTableSize, defaultVoxelCacheSize,
-                                        Vec3Simple.Vec3(pageBlockSize) as SizeWorld,
-                                        Vec3Simple.Vec3(voxelBlockSize) as SizeWorld);
+  let pageBlockSize = Vec3Simple.Vec3(32) as SizeWorld<PageBlockScale>;
+  let voxelBlockSize = Vec3Simple.Vec3(16) as SizeWorld<VoxelBlockScale>;
+  let cacheRegistry = new CacheRegistry(defaultPageTableSize, defaultVoxelCacheSize, pageBlockSize, voxelBlockSize);
   let voxelCoordinates = { x: 10500, y: 3000, z: 200 } as VoxelCoordinates;
   let expected = { x: 656, y: 187, z: 12 };
   let actual = cacheRegistry.toVoxelBlockCoordinates(voxelCoordinates);
@@ -35,11 +34,9 @@ test('Converts coordinates to correct voxel block coordinates', () => {
 });
 
 test('Converts coordinates to correct page block coordinates', () => {
-  let pageBlockSize = 32;
-  let voxelBlockSize = 16;
-  let cacheRegistry = new CacheRegistry(defaultPageTableSize, defaultVoxelCacheSize,
-                                        Vec3Simple.Vec3(pageBlockSize) as SizeWorld,
-                                        Vec3Simple.Vec3(voxelBlockSize) as SizeWorld);
+  let pageBlockSize = Vec3Simple.Vec3(32) as SizeWorld<PageBlockScale>;
+  let voxelBlockSize = Vec3Simple.Vec3(16) as SizeWorld<VoxelBlockScale>;
+  let cacheRegistry = new CacheRegistry(defaultPageTableSize, defaultVoxelCacheSize, pageBlockSize, voxelBlockSize);
   let voxelCoordinates = { x: 10500, y: 3000, z: 200 } as VoxelCoordinates;
   let expected = { x: 20, y: 5, z: 0 };
   let actual = cacheRegistry.toPageBlockCoordinates(voxelCoordinates);
@@ -47,28 +44,26 @@ test('Converts coordinates to correct page block coordinates', () => {
 });
 
 test('Create voxelBlockLRU with correct max size', () => {
-  let pageBlockSize = 32;
-  let voxelBlockSize = 16;
-  let cacheRegistry = new CacheRegistry(defaultPageTableSize, defaultVoxelCacheSize,
-                                        Vec3Simple.Vec3(pageBlockSize) as SizeWorld,
-                                        Vec3Simple.Vec3(voxelBlockSize) as SizeWorld);
+  let pageBlockSize = Vec3Simple.Vec3(32) as SizeWorld<PageBlockScale>;
+  let voxelBlockSize = Vec3Simple.Vec3(16) as SizeWorld<VoxelBlockScale>;
+  let cacheRegistry = new CacheRegistry(defaultPageTableSize, defaultVoxelCacheSize, pageBlockSize, voxelBlockSize);
+
   expect(cacheRegistry.voxelBlockLRU.numberFreeBlocks).toBe((defaultSize / voxelBlockSize) ** 3);
 });
 
 test('Create pageTableLRU with correct max size', () => {
-  let pageBlockSize = 32;
-  let voxelBlockSize = 16;
-  let cacheRegistry = new CacheRegistry(defaultPageTableSize, defaultVoxelCacheSize,
-                                        Vec3Simple.Vec3(pageBlockSize) as SizeWorld,
-                                        Vec3Simple.Vec3(voxelBlockSize) as SizeWorld);
+  let pageBlockSize = Vec3Simple.Vec3(32) as SizeWorld<PageBlockScale>;
+  let voxelBlockSize = Vec3Simple.Vec3(16) as SizeWorld<VoxelBlockScale>;
+  let cacheRegistry = new CacheRegistry(defaultPageTableSize, defaultVoxelCacheSize, pageBlockSize, voxelBlockSize);
+
   expect(cacheRegistry.pageTableLRU.numberFreeBlocks).toBe((defaultSize / pageBlockSize) ** 3);
 });
 
 test('Register 1 voxel block for 1 page table no overflow', () => {
-  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(1) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld);
+  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(1) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>);
   let voxelLRU = cacheRegistry.voxelBlockLRU;
   let pageLRU = cacheRegistry.pageTableLRU;
 
@@ -96,10 +91,10 @@ test('Register 1 voxel block for 1 page table no overflow', () => {
 });
 
 test('Registering 2 voxel blocks for 1 pagetable no overflow', () => {
-  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(2) as SizeWorld,
-                                        Vec3Simple.Vec3(2) as SizeWorld,
-                                        Vec3Simple.Vec3(2) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld);
+  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(2) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(2) as SizeWorld<VoxelBlockScale>,
+                                        Vec3Simple.Vec3(2) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>);
   let voxelLRU = cacheRegistry.voxelBlockLRU;
   let pageLRU = cacheRegistry.pageTableLRU;
 
@@ -140,10 +135,10 @@ test('Registering 2 voxel blocks for 1 pagetable no overflow', () => {
 });
 
 test('Registering 2 voxel blocks for 2 pagetables no overflow', () => {
-  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(2) as SizeWorld,
-                                        Vec3Simple.Vec3(2) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld);
+  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(2) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(2) as SizeWorld<VoxelBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>);
   let voxelLRU = cacheRegistry.voxelBlockLRU;
   let pageLRU = cacheRegistry.pageTableLRU;
 
@@ -189,10 +184,10 @@ test('Registering 2 voxel blocks for 2 pagetables no overflow', () => {
 });
 
 test('Registering 2 voxel blocks to 1 pagetable but overflows voxel cache', () => {
-  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(2) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld,
-                                        Vec3Simple.Vec3(2) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld);
+  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(2) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>,
+                                        Vec3Simple.Vec3(2) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>);
   let voxelLRU = cacheRegistry.voxelBlockLRU;
   let pageLRU = cacheRegistry.pageTableLRU;
 
@@ -234,10 +229,10 @@ test('Registering 2 voxel blocks to 1 pagetable but overflows voxel cache', () =
 });
 
 test('Registering 2 voxel blocks to 2 pagetables but overflows voxel cache', () => {
-  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(2) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld);
+  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(2) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>);
   let voxelLRU = cacheRegistry.voxelBlockLRU;
   let pageLRU = cacheRegistry.pageTableLRU;
 
@@ -278,10 +273,10 @@ test('Registering 2 voxel blocks to 2 pagetables but overflows voxel cache', () 
 });
 
 test('Registering register 2 voxel block to 2 pagetables but overflows page table cache', () => {
-  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(1) as SizeWorld,
-                                        Vec3Simple.Vec3(2) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld);
+  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(1) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(2) as SizeWorld<VoxelBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>);
   let voxelLRU = cacheRegistry.voxelBlockLRU;
   let pageLRU = cacheRegistry.pageTableLRU;
 
@@ -324,10 +319,10 @@ test('Registering register 2 voxel block to 2 pagetables but overflows page tabl
 });
 
 test('Registering 2 voxel blocks to 2 pagetables but overflows both voxel and page table cache', () => {
-  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(1) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld);
+  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(1) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>);
   let voxelLRU = cacheRegistry.voxelBlockLRU;
   let pageLRU = cacheRegistry.pageTableLRU;
 
@@ -371,10 +366,10 @@ test('Registering 2 voxel blocks to 2 pagetables but overflows both voxel and pa
 });
 
 test('Registering full voxel and page table cache and overflow both to overflow the same cache LRU, vx cache 1', () => {
-  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(2) as SizeWorld,
-                                        Vec3Simple.Vec3(2) as SizeWorld,
-                                        Vec3Simple.Vec3(2) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld);
+  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(2) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(2) as SizeWorld<VoxelBlockScale>,
+                                        Vec3Simple.Vec3(2) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>);
   let voxelLRU = cacheRegistry.voxelBlockLRU;
   let pageLRU = cacheRegistry.pageTableLRU;
 
@@ -419,10 +414,10 @@ test('Registering full voxel and page table cache and overflow both to overflow 
 });
 
 test('Register full voxel and page table cache and new vx/pt with overflow but replace only 1 LRU page table', () => {
-  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(4) as SizeWorld,
-                                        Vec3Simple.Vec3(4) as SizeWorld,
-                                        Vec3Simple.Vec3(2) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld);
+  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(4) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(4) as SizeWorld<VoxelBlockScale>,
+                                        Vec3Simple.Vec3(2) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>);
   let voxelLRU = cacheRegistry.voxelBlockLRU;
   let pageLRU = cacheRegistry.pageTableLRU;
 
@@ -462,10 +457,10 @@ test('Register full voxel and page table cache and new vx/pt with overflow but r
 });
 
 test('Register full voxel and page table cache but 2 different page table lru', () => {
-  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(4) as SizeWorld,
-                                        Vec3Simple.Vec3(4) as SizeWorld,
-                                        Vec3Simple.Vec3(2) as SizeWorld,
-                                        Vec3Simple.Vec3(1) as SizeWorld);
+  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(4) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(4) as SizeWorld<VoxelBlockScale>,
+                                        Vec3Simple.Vec3(2) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>);
   let voxelLRU = cacheRegistry.voxelBlockLRU;
   let pageLRU = cacheRegistry.pageTableLRU;
 
@@ -521,10 +516,10 @@ test('Register full voxel and page table cache but 2 different page table lru', 
 });
 
 test('Timeit 1 block 100x!', () => {
-  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(512) as SizeWorld,
-                                        Vec3Simple.Vec3(512) as SizeWorld,
-                                        Vec3Simple.Vec3(32) as SizeWorld,
-                                        Vec3Simple.Vec3(32) as SizeWorld);
+  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(512) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(512) as SizeWorld<VoxelBlockScale>,
+                                        Vec3Simple.Vec3(32) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(32) as SizeWorld<VoxelBlockScale>);
   /*
    *console.log(voxelLRU.numberFreeBlocks);
    *console.log(pageLRU.numberFreeBlocks);
@@ -552,10 +547,10 @@ test('Timeit 1 block 100x!', () => {
 });
 
 test('Timeit 100 separate blocks!', () => {
-  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(512) as SizeWorld,
-                                        Vec3Simple.Vec3(512) as SizeWorld,
-                                        Vec3Simple.Vec3(32) as SizeWorld,
-                                        Vec3Simple.Vec3(32) as SizeWorld);
+  let cacheRegistry = new CacheRegistry(Vec3Simple.Vec3(512) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(512) as SizeWorld<VoxelBlockScale>,
+                                        Vec3Simple.Vec3(32) as SizeWorld<PageBlockScale>,
+                                        Vec3Simple.Vec3(32) as SizeWorld<VoxelBlockScale>);
   /*
    *console.log(voxelLRU.numberFreeBlocks);
    *console.log(pageLRU.numberFreeBlocks);
