@@ -11,11 +11,13 @@ import { SizeWorld, SizePower, toPowerTwo,
 } from './CacheTypes';
 
 
-/*
- *export default function createCacheRegistry(): CacheRegistry {
- *
- *}
- */
+export interface CacheDelta {
+  addedVoxelCache?: [VoxelCacheBlockCoordinates, VoxelBlockCoordinates];
+  addedPageTable?: [PageTableCacheBlockCoordinates, [VoxelCacheBlockCoordinates, VoxelBlockCoordinates]];
+  removedVoxelCache?: VoxelCacheBlockCoordinates[];
+  removedPageTable?: [PageTableCacheBlockCoordinates, VoxelBlockCoordinates | boolean][];
+}
+
 export default class CacheRegistry {
   public readonly voxelBlockLRU: BlockRegistry<
     VoxelBlockCoordinates, VoxelCacheBlockCoordinates, VoxelCacheBlock, VoxelBlockScale>;
@@ -60,9 +62,19 @@ export default class CacheRegistry {
       pageTableSize, pageBlockSize);
   }
 
-  public registerToCache(position: VoxelCoordinates) {
+  public registerToCache(position: VoxelCoordinates): CacheDelta {
     let voxelBlockCoordinates = this.toVoxelBlockCoordinates(position);
     let pageBlockCoordinates = this.toPageBlockCoordinates(position);
+
+    // Voxel block already in cache, just update the lru recency and return
+    if (this.voxelBlockLRU.find(voxelBlockCoordinates) !== undefined) {
+      this.voxelBlockLRU.set(voxelBlockCoordinates);
+      this.pageTableLRU.set(pageBlockCoordinates);
+      return {};
+    }
+
+    // set up return values
+    let cacheDelta: CacheDelta = {};
 
     let voxelCreateInfoFunction = CacheRegistry.getVoxelCreateInfoFunction(pageBlockCoordinates, voxelBlockCoordinates);
     let pageCreateInfoFunction = CacheRegistry.getPageCreateInfoFunction(voxelBlockCoordinates);
@@ -70,26 +82,57 @@ export default class CacheRegistry {
     let oldVoxelCacheBlock = this.voxelBlockLRU.set(voxelBlockCoordinates, voxelCreateInfoFunction);
     let oldPageTableCacheBlock = this.pageTableLRU.set(pageBlockCoordinates, pageCreateInfoFunction);
 
+    let voxelCacheBlockCoordinates: VoxelCacheBlockCoordinates;
+    let pageTableCacheBlockCoordinates: PageTableCacheBlockCoordinates;
+
     // We had replaced an existing voxel block, try to remove it from the page table cache
     if (oldVoxelCacheBlock !== undefined) {
-      let updatePageTable = this.pageTableLRU.find(oldVoxelCacheBlock.info.pageBlockCoordinates);
-      // the page table already have been displaced by thhe page table cache
-      if (updatePageTable !== undefined) {
-        updatePageTable.info.mappedVoxelBlockCoordinates.delete(oldVoxelCacheBlock.info.voxelBlockCoordinates);
-      } /* else {
-        console.error('This should not happen, cache hit in voxel block but miss in page Table!')
-      } */
+      let updatedPageTableCacheBlock = this.pageTableLRU.find(oldVoxelCacheBlock.info.pageBlockCoordinates);
+      if (updatedPageTableCacheBlock !== undefined) {
+        // remove the entire page table if this is the only entry
+        if (cacheDelta.removedPageTable === undefined) {
+          cacheDelta.removedPageTable = [];
+        }
+        if (updatedPageTableCacheBlock.info.mappedVoxelBlockCoordinates.size === 1) {
+          this.pageTableLRU.delete(oldVoxelCacheBlock.info.pageBlockCoordinates);
+          cacheDelta.removedPageTable.push([updatedPageTableCacheBlock.block, true]);
+        } else {
+          updatedPageTableCacheBlock.info.mappedVoxelBlockCoordinates.delete(
+            oldVoxelCacheBlock.info.voxelBlockCoordinates);
+          cacheDelta.removedPageTable.push(
+            [updatedPageTableCacheBlock.block, oldVoxelCacheBlock.info.voxelBlockCoordinates]);
+        }
+      }
+      voxelCacheBlockCoordinates = oldVoxelCacheBlock.block;
+    } else {
+      voxelCacheBlockCoordinates = this.voxelBlockLRU.find(voxelBlockCoordinates)!.block;
     }
 
-    // We had replaced an existing page table, try to remove all voxel blocks stored in there
+    // We had replaced an existing page table, try to remove all the voxel blocks it references
     if (oldPageTableCacheBlock !== undefined) {
-      // iterator requires tsconfig downlevelIteration, but only available in TS nightly currently (TS > 2.2)
+      if (cacheDelta.removedPageTable === undefined) {
+        cacheDelta.removedPageTable = [];
+      }
+      cacheDelta.removedPageTable.push([oldPageTableCacheBlock.block, true]);
+
+      cacheDelta.removedVoxelCache = [];
+      // iterator requires tsconfig downlevelIteration, but only available in TS nightly (currently TS > 2.2)
       // for (let oldVoxelBlockCoordinates of oldPageTableCacheBlock.info.mappedVoxelBlockCoordinates.keys()) {
       let iterable =  oldPageTableCacheBlock.info.mappedVoxelBlockCoordinates.keys();
       for (let iterValue = iterable.next(); !iterValue.done; iterValue = iterable.next()) {
-        this.voxelBlockLRU.delete(iterValue.value);
+        let removedVoxelBlock = this.voxelBlockLRU.delete(iterValue.value);
+        if (removedVoxelBlock !== undefined) {
+          cacheDelta.removedVoxelCache.push(removedVoxelBlock.block);
+        }
       }
+      pageTableCacheBlockCoordinates = oldPageTableCacheBlock.block;
+    } else {
+      pageTableCacheBlockCoordinates = this.pageTableLRU.find(pageBlockCoordinates)!.block;
     }
+
+    cacheDelta.addedVoxelCache = [voxelCacheBlockCoordinates , voxelBlockCoordinates];
+    cacheDelta.addedPageTable = [pageTableCacheBlockCoordinates, [voxelCacheBlockCoordinates, voxelBlockCoordinates]];
+    return cacheDelta;
   }
 
   /*

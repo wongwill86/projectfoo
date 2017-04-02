@@ -85,3 +85,15 @@ test('Info is updated when key is called/touched for LRU', () => {
   expect(firstBlock!.info.pageBlockCoordinates).toMatchObject({ x: 2, y: 2, z: 2 });
 
 });
+
+test('No data is created when createInfo is not specified', () => {
+  let dim = 2;
+  let registry = createBlockRegistry<
+    VoxelBlockCoordinates, VoxelCacheBlockCoordinates, VoxelCacheBlock, VoxelBlockScale>(
+    Vec3Simple.Vec3(dim) as SizeCache);
+  // Use up all blocks
+  let firstCoordinates = Vec3Simple.Vec3(0) as VoxelBlockCoordinates;
+  registry.set(firstCoordinates);
+
+  expect(registry.numberRegisteredBlocks).toBe(0);
+});

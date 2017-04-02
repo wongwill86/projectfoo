@@ -1,4 +1,5 @@
 import LRUHashString from './map/LRUCustomHash';
+import { LRUCustomHash } from './map/LRUCustomHash';
 import * as Vec3Simple from './Vec3Simple';
 import { SizeWorld, SizeCache, CacheBlock, Scaled, Scale, CacheInfo, WorldCoordinates,
   CacheCoordinates } from './CacheTypes';
@@ -19,7 +20,7 @@ export default function createBlockRegistry<
 
   let options  = {
     limit: sizeCache.x * sizeCache.y * sizeCache.z,
-    toHash: Vec3Simple.stringify,
+    toHash: (vec3: Vec3Simple.Vec3) => vec3.x.toString() + ',' + vec3.y.toString() + ',' + vec3.z.toString(),
   };
   let blockLRU = new LRUHashString<WorldCoordinatesScaled, Block>(options);
   return new BlockRegistry<WorldCoordinatesScaled, CacheCoordinatesScaled, Block, S>(sizeCache, blockLRU);
@@ -33,7 +34,7 @@ export class BlockRegistry<
     S extends Scale> {
   protected readonly freeBlocks: Block[] = [];
 
-  constructor(public size: SizeCache, protected lru: LRUHashString<WorldCoordinatesScaled, Block>) {
+  constructor(public size: SizeCache, protected lru: LRUCustomHash<WorldCoordinatesScaled, Block, any>) {
     for (let x = 0; x < size.x; x ++) {
       for (let y = 0; y < size.y; y ++) {
         for (let z = 0; z < size.z; z ++) {
@@ -67,10 +68,15 @@ export class BlockRegistry<
    * Returns a cacheBlock of any block that is replaced.
    */
   public set(worldCoordinates: WorldCoordinatesScaled,
-             createInfo: (info?: CacheInfo<S>) => CacheInfo<S>): Block | undefined {
+             createInfo?: (info?: CacheInfo<S>) => CacheInfo<S>): Block | undefined {
+    // touch the coordinates in the LRU to update most recent.
     let oldBlock = this.lru.get(worldCoordinates);
 
-    // touch the coordinates in the LRU to update most recent.
+    // we don't have a way to create data even if we need to use a free block
+    if (createInfo === undefined) {
+      return undefined;
+    }
+
     // if it exists in the lru, we can just run create info with old data and return
     if (oldBlock !== undefined) {
       // update the info with the createInfo function
@@ -119,6 +125,8 @@ export class BlockRegistry<
     if (block !== undefined) {
       this.freeBlocks.push(block);
       this.lru.delete(worldCoordinates);
+      // return a copy so that if the block is reused, the reference info data is not changed
+      block = this.copy(block);
     }
     return block;
   }
@@ -137,8 +145,6 @@ export class BlockRegistry<
     // iterator requires tsconfig downlevelIteration, but only available in TS nightly currently (TS > 2.2)
     for (let i = iter.next(); !i.done; i = iter.next()) {
       str += `(${JSON.stringify(i.value[0])}: ${JSON.stringify(i.value[1])}),  `;
-      console.log(i.value[1].info);
-      //for (let i.value[1].info.mappedVoxelBlockCoordinates)
     }
     return str;
   }
