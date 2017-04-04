@@ -1,8 +1,8 @@
 import { default as createBlockRegistry } from './BlockRegistry';
-import * as Vec3Simple from './Vec3Simple';
+import * as Vec3Simple from '../Vec3Simple';
 import { SizeCache, VoxelBlockCoordinates, VoxelCacheBlockCoordinates, VoxelCacheBlock, VoxelCacheInfo,
   VoxelBlockScale }
-from './CacheTypes';
+from './types/CacheTypes';
 
 /*
  * Arbitrary fake update function that doubles the page block coordinates of we are updating, otherwise set it to 1,1,1
@@ -20,7 +20,7 @@ test('Initializes with correct amount of free blocks', () => {
   let dim = 4;
   let registry = createBlockRegistry<
     VoxelBlockCoordinates, VoxelCacheBlockCoordinates, VoxelCacheBlock, VoxelBlockScale>(
-    Vec3Simple.Vec3(dim) as SizeCache);
+    Vec3Simple.Vec3(dim) as SizeCache<VoxelBlockScale>);
   expect(registry.numberFreeBlocks).toBe(4 ** 3);
 });
 
@@ -28,7 +28,7 @@ test('Values are set from free blocks and can be retrieved via \'get\' and \'fin
   let dim = 2;
   let registry = createBlockRegistry<
     VoxelBlockCoordinates, VoxelCacheBlockCoordinates, VoxelCacheBlock, VoxelBlockScale>(
-    Vec3Simple.Vec3(dim) as SizeCache);
+    Vec3Simple.Vec3(dim) as SizeCache<VoxelBlockScale>);
   let coordinates = Vec3Simple.Vec3(1) as VoxelBlockCoordinates;
   registry.set(coordinates, createInfo);
   expect(registry.get(coordinates)).not.toBeUndefined();
@@ -39,7 +39,7 @@ test('Values are shifted out of free memory correctly and the create function is
   let dim = 2;
   let registry = createBlockRegistry<
     VoxelBlockCoordinates, VoxelCacheBlockCoordinates, VoxelCacheBlock, VoxelBlockScale>(
-    Vec3Simple.Vec3(dim) as SizeCache);
+    Vec3Simple.Vec3(dim) as SizeCache<VoxelBlockScale>);
   // Use up all blocks
   let firstCoordinates = Vec3Simple.Vec3(0) as VoxelBlockCoordinates;
   registry.set(firstCoordinates, createInfo);
@@ -71,7 +71,7 @@ test('Info is updated when key is called/touched for LRU', () => {
   let dim = 2;
   let registry = createBlockRegistry<
     VoxelBlockCoordinates, VoxelCacheBlockCoordinates, VoxelCacheBlock, VoxelBlockScale>(
-    Vec3Simple.Vec3(dim) as SizeCache);
+    Vec3Simple.Vec3(dim) as SizeCache<VoxelBlockScale>);
   // Use up all blocks
   let firstCoordinates = Vec3Simple.Vec3(0) as VoxelBlockCoordinates;
   registry.set(firstCoordinates, createInfo);
@@ -90,7 +90,7 @@ test('No data is created when createInfo is not specified', () => {
   let dim = 2;
   let registry = createBlockRegistry<
     VoxelBlockCoordinates, VoxelCacheBlockCoordinates, VoxelCacheBlock, VoxelBlockScale>(
-    Vec3Simple.Vec3(dim) as SizeCache);
+    Vec3Simple.Vec3(dim) as SizeCache<VoxelBlockScale>);
   // Use up all blocks
   let firstCoordinates = Vec3Simple.Vec3(0) as VoxelBlockCoordinates;
   registry.set(firstCoordinates);

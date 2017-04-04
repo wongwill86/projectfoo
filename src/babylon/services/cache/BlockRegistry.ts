@@ -1,12 +1,12 @@
-import LRUHashString from './map/LRUCustomHash';
-import { LRUCustomHash } from './map/LRUCustomHash';
-import * as Vec3Simple from './Vec3Simple';
-import { SizeWorld, SizeCache, CacheBlock, Scaled, Scale, CacheInfo, WorldCoordinates,
-  CacheCoordinates } from './CacheTypes';
+import LRUHashString from '../map/LRUCustomHash';
+import { LRUCustomHash } from '../map/LRUCustomHash';
+import * as Vec3Simple from '../Vec3Simple';
+import { SizeWorld, SizeCache, CacheBlock, Scale, CacheInfo, WorldCoordinates,
+  CacheCoordinates } from './types/CacheTypes';
 
 export default function createBlockRegistry<
-    WorldCoordinatesScaled extends WorldCoordinates & Scaled<S>,
-    CacheCoordinatesScaled extends CacheCoordinates & Scaled<S>,
+    WorldCoordinatesScaled extends WorldCoordinates<S>,
+    CacheCoordinatesScaled extends CacheCoordinates<S>,
     Block extends CacheBlock<CacheCoordinatesScaled, CacheInfo<S>, S>,
     S extends Scale>(
       sizeWorld: SizeWorld<S> | SizeCache<S>, sizeBlock?: SizeWorld<S>): BlockRegistry<
@@ -21,7 +21,7 @@ export default function createBlockRegistry<
 
   let options  = {
     limit: sizeCache.x * sizeCache.y * sizeCache.z,
-    toHash: (vec3: Vec3Simple.Vec3) => vec3.x.toString() + ',' + vec3.y.toString() + ',' + vec3.z.toString(),
+    toHash: Vec3Simple.stringify,
   };
   let blockLRU = new LRUHashString<WorldCoordinatesScaled, Block>(options);
   return new BlockRegistry<WorldCoordinatesScaled, CacheCoordinatesScaled, Block, S>(sizeCache, blockLRU);
@@ -29,8 +29,8 @@ export default function createBlockRegistry<
 
 
 export class BlockRegistry<
-    WorldCoordinatesScaled extends WorldCoordinates & Scaled<S>,
-    CacheCoordinatesScaled extends CacheCoordinates & Scaled<S>,
+    WorldCoordinatesScaled extends WorldCoordinates<S>,
+    CacheCoordinatesScaled extends CacheCoordinates<S>,
     Block extends CacheBlock<CacheCoordinatesScaled, CacheInfo<S>, S>,
     S extends Scale> {
   protected readonly freeBlocks: Block[] = [];
@@ -101,8 +101,8 @@ export class BlockRegistry<
 
     // This should not happen!
     if (shift === undefined) {
-      console.error(`Free blocks out of sync with LRU. No free blocks found and no blocks could be shifted out ` +
-                    `from the lru worldCoordinates ${worldCoordinates} from LRU but none were found.`);
+      //console.error(`Free blocks out of sync with LRU. No free blocks found and no blocks could be shifted out ` +
+                    //`from the lru worldCoordinates ${worldCoordinates} from LRU but none were found.`);
       return undefined;
     }
 
