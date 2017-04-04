@@ -1,6 +1,6 @@
 import { HashStringMap } from '../map/HashMap';
 import { default as createBlockRegistry, BlockRegistry } from './BlockRegistry';
-import { CacheDelta, VoxelCacheDelta, PageTableDelta } from './types/CacheDelta';
+import { CacheDelta } from './types/CacheDelta';
 import CacheConfig from './CacheConfig';
 import {
   MapState,
@@ -80,6 +80,7 @@ export class PageVoxelRegistry {
         // remove the entire page table if this is the only entry
         if (updatedPageTableCacheBlock.info.mappedVoxelBlockCoordinates.size === 1) {
           this.pageTableLRU.delete(oldVoxelCacheBlock.info.pageBlockCoordinates);
+          // delta to remove entire page table entry
           cacheDelta.pageTable.push({
             cacheBlock: updatedPageTableCacheBlock.block,
             data: { state: MapState.NotMapped },
@@ -87,9 +88,10 @@ export class PageVoxelRegistry {
         } else {
           updatedPageTableCacheBlock.info.mappedVoxelBlockCoordinates.delete(
             oldVoxelCacheBlock.info.voxelBlockCoordinates);
+          // delta to remove mark only one entry in page table block as unmapped
           cacheDelta.pageTable.push({
             cacheBlock: updatedPageTableCacheBlock.block,
-            data: { location: oldVoxelCacheBlock.info.voxelBlockCoordinates, state: MapState.NotMapped }
+            data: { location: oldVoxelCacheBlock.info.voxelBlockCoordinates, state: MapState.NotMapped },
           });
         }
       }
@@ -100,6 +102,7 @@ export class PageVoxelRegistry {
 
     // We had replaced an existing page table, try to remove all the voxel blocks it references
     if (oldPageTableCacheBlock !== undefined) {
+      // delta to remove entire page table entry
       cacheDelta.pageTable.push({
         cacheBlock: oldPageTableCacheBlock.block,
         data: { state: MapState.NotMapped },
@@ -111,6 +114,7 @@ export class PageVoxelRegistry {
       for (let iterValue = iterable.next(); !iterValue.done; iterValue = iterable.next()) {
         let removedVoxelBlock = this.voxelBlockLRU.delete(iterValue.value);
         if (removedVoxelBlock !== undefined) {
+          // delta to remove the voxel block
           cacheDelta.voxelCache.push({
             cacheBlock: removedVoxelBlock.block,
             data: { state: MapState.NotMapped },
@@ -122,11 +126,13 @@ export class PageVoxelRegistry {
       pageTableCacheBlockCoordinates = this.pageTableLRU.find(pageBlockCoordinates)!.block;
     }
 
+    // delta to add voxel block to cache
     cacheDelta.voxelCache.push({
       cacheBlock: voxelCacheBlockCoordinates,
       data: { state: MapState.Mapped, entry: voxelBlockCoordinates },
     });
 
+    // delta to add voxel block entry into page table
     cacheDelta.pageTable.push({
       cacheBlock: pageTableCacheBlockCoordinates,
       data: { state: MapState.Mapped, entry: voxelCacheBlockCoordinates, location: voxelBlockCoordinates },
@@ -134,41 +140,93 @@ export class PageVoxelRegistry {
     return cacheDelta;
   }
 
+  /*
+   * Force mark an entire page block to be empty and remove any associated voxel blocks to be removed from cache
+   * Warning, this **only** updates an **existing** page table entry; it does not create a new one.
+   */
   public markEmptyPageBlock(pageBlockCoordinates: PageBlockCoordinates): CacheDelta {
+    // remove the entire entry, empty-ness should be marked in the page directory separately
+    let pageTableEntry = this.pageTableLRU.delete(pageBlockCoordinates);
+
+    if (pageTableEntry === undefined) {
+      return {};
+    }
+
     let cacheDelta: CacheDelta = {};
-    let pageTableEntry = this.pageTableLRU.find(pageBlockCoordinates);
-    if (pageTableEntry !== undefined) {
-      cacheDelta.removedVoxelCache = [];
-      // iterator requires tsconfig downlevelIteration, but only available in TS nightly (currently TS > 2.2)
-      // for (let oldVoxelBlockCoordinates of oldPageTableCacheBlock.info.mappedVoxelBlockCoordinates.keys())
-      let iterable =  pageTableEntry.info.mappedVoxelBlockCoordinates.keys();
-      for (let iterValue = iterable.next(); !iterValue.done; iterValue = iterable.next()) {
-        let removedVoxelBlock = this.voxelBlockLRU.delete(iterValue.value);
-        if (removedVoxelBlock !== undefined) {
-          cacheDelta.removedVoxelCache.push(removedVoxelBlock.block);
-        }
+    cacheDelta.pageTable = [];
+    cacheDelta.voxelCache = [];
+
+    // delta to remove entire page block
+    cacheDelta.pageTable.push({
+      cacheBlock: pageTableEntry.block,
+      data: {
+        state: MapState.Empty,
+      },
+    });
+
+    // Remove any mapped blocks in this page block
+    // iterator requires tsconfig downlevelIteration, but only available in TS nightly (currently TS > 2.2)
+    // for (let oldVoxelBlockCoordinates of oldPageTableCacheBlock.info.mappedVoxelBlockCoordinates.keys())
+    let iterable =  pageTableEntry.info.mappedVoxelBlockCoordinates.keys();
+
+    for (let iterValue = iterable.next(); !iterValue.done; iterValue = iterable.next()) {
+      let removedVoxelBlock = this.voxelBlockLRU.delete(iterValue.value);
+      if (removedVoxelBlock !== undefined) {
+        // delta to remove entire voxel block
+        cacheDelta.voxelCache.push({
+          cacheBlock: removedVoxelBlock.block,
+          data: { state: MapState.Empty },
+        });
       }
     }
-    this.pageTableLRU.delete(pageBlockCoordinates);
+
     return cacheDelta;
   }
 
-  public markEmptyVoxelBlock(voxelBlockCoordinates: VoxelBlockCoordinates): CacheDelta {
-    let previousVoxelBlock = this.voxelBlockLRU.delete(voxelBlockCoordinates);
-    // if it exists, update the page table info to show it as empty
-    if (previousVoxelBlock !== undefined) {
-      let updatedPageTableCacheBlock = this.pageTableLRU.find(previousVoxelBlock.info.pageBlockCoordinates);
-      if (updatedPageTableCacheBlock !== undefined) {
-        updatedPageTableCacheBlock.info.mappedVoxelBlockCoordinates.set(
-          previousVoxelBlock.info.voxelBlockCoordinates, MapState.Empty);
-        cacheDelta.removedPageTable.push(
-          [updatedPageTableCacheBlock.block, oldVoxelCacheBlock.info.voxelBlockCoordinates]);
-      }
+  /*
+   * Force mark an individual voxel block to be empty
+   * Warning, this **only** updates an **existing** page table entry; it does not create a new one.
+   */
+  public markEmptyVoxelBlock(pageBlockCoordinates: PageBlockCoordinates,
+                             voxelBlockCoordinates: VoxelBlockCoordinates): CacheDelta {
+    let pageTableEntry = this.pageTableLRU.find(pageBlockCoordinates);
+
+    // a voxel block can only be in the cache if it is mapped in the page table
+    if (pageTableEntry === undefined) {
+      return {};
     }
-    voxelCacheBlockCoordinates = oldVoxelCacheBlock.block;
+
+    let cacheDelta: CacheDelta = {};
+    cacheDelta.pageTable = [];
+    cacheDelta.voxelCache = [];
+
+    // set page table entry value to be empty
+    pageTableEntry.info.mappedVoxelBlockCoordinates.set(voxelBlockCoordinates, MapState.Empty);
+    // delta to mark page table entry for voxel block as empty
+    cacheDelta.pageTable.push({
+      cacheBlock: pageTableEntry.block,
+      data: {
+        state: MapState.Empty,
+        location: voxelBlockCoordinates,
+      },
+    });
+
+    let previousVoxelBlock = this.voxelBlockLRU.delete(voxelBlockCoordinates)!;
+
+    if (previousVoxelBlock !== undefined) {
+      // delta to remove voxel block from cache if it existed
+      cacheDelta.voxelCache.push({
+        cacheBlock: previousVoxelBlock.block,
+        data: {
+          state: MapState.Empty,
+        },
+      });
+    }
+
+    return cacheDelta;
   }
 
-  public isEmpty(pageBlockCoordinates: PageBlockCoordinates, voxelBlockCoordinates: VoxelBlockCoordinates) {
+  public isEmptyVoxelBlock(pageBlockCoordinates: PageBlockCoordinates, voxelBlockCoordinates: VoxelBlockCoordinates) {
     let entry = this.pageTableLRU.find(pageBlockCoordinates);
     return entry !== undefined && entry.info.mappedVoxelBlockCoordinates.get(voxelBlockCoordinates) === MapState.Empty;
   }

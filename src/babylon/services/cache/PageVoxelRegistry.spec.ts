@@ -1,4 +1,4 @@
-import createPageVoxelRegistry from './PageVoxelRegistry';
+import {default as createPageVoxelRegistry } from './PageVoxelRegistry';
 import * as Vec3Simple from '../Vec3Simple';
 import { MapState, SizeWorld,
   VoxelCoordinates,
@@ -188,7 +188,7 @@ test('Registering 2 voxel blocks for 2 pagetables no overflow', () => {
   expect(delta.voxelCache![0].data.state).toBe(MapState.Mapped);
 });
 
-test('Registering 2 voxel blocks to 1 pagetable but overflows voxel cache', () => {
+test('Registering 2 voxel blocks for 1 pagetable but overflows voxel cache', () => {
   let config = getTestRegistryConfig(
     Vec3Simple.Vec3(2) as SizeWorld<PageBlockScale>, Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>,
     Vec3Simple.Vec3(2) as SizeWorld<PageBlockScale>, Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>);
@@ -243,7 +243,7 @@ test('Registering 2 voxel blocks to 1 pagetable but overflows voxel cache', () =
 
 });
 
-test('Registering 2 voxel blocks to 2 pagetables but overflows voxel cache', () => {
+test('Registering 2 voxel blocks for 2 pagetables but overflows voxel cache', () => {
   let config = getTestRegistryConfig(
     Vec3Simple.Vec3(2) as SizeWorld<PageBlockScale>, Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>,
     Vec3Simple.Vec3(1) as SizeWorld<PageBlockScale>, Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>);
@@ -354,7 +354,7 @@ test('Registering register 2 voxel block to 2 pagetables but overflows page tabl
   expect(delta.voxelCache![1].data.entry).toMatchObject(expectedVoxelBlockCoordinates2);
 });
 
-test('Registering 2 voxel blocks to 2 pagetables but overflows both voxel and page table cache, vx cache is 1', () => {
+test('Registering 2 voxel blocks for 2 pagetables but overflows both voxel and page table cache, vx cache is 1', () => {
   let config = getTestRegistryConfig(
     Vec3Simple.Vec3(1) as SizeWorld<PageBlockScale>, Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>,
     Vec3Simple.Vec3(1) as SizeWorld<PageBlockScale>, Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>);
@@ -588,21 +588,180 @@ test('Register full voxel and page table cache but 2 different page table lru', 
   expect(delta.voxelCache![8].data.entry).toMatchObject(expectedVoxelBlockCoordinates);
 });
 
+test('Mark Empty Page Block no page table entry', () => {
+  let config = getTestRegistryConfig();
+  let pageVoxelRegistry = createPageVoxelRegistry(config);
+
+  let voxelCoordinates = { x: 0, y: 0, z: 0 } as VoxelCoordinates;
+  let pageBlockCoordinates = config.toPageBlockCoordinates(voxelCoordinates);
+
+  let delta = pageVoxelRegistry.markEmptyPageBlock(pageBlockCoordinates);
+
+  expect(delta).toMatchObject({});
+});
+
+test('Mark Empty Page Block with 1 entry', () => {
+  let config = getTestRegistryConfig();
+  let pageVoxelRegistry = createPageVoxelRegistry(config);
+
+  let voxelCoordinates = { x: 0, y: 0, z: 0 } as VoxelCoordinates;
+  let pageBlockCoordinates = config.toPageBlockCoordinates(voxelCoordinates);
+  let voxelBlockCoordinates = config.toVoxelBlockCoordinates(voxelCoordinates);
+
+  // TODO use real mocking
+  let voxelLRU = pageVoxelRegistry.voxelBlockLRU;
+  let pageLRU = pageVoxelRegistry.pageTableLRU;
+
+  pageVoxelRegistry.registerToCache(pageBlockCoordinates, voxelBlockCoordinates);
+
+  let delta = pageVoxelRegistry.markEmptyPageBlock(pageBlockCoordinates);
+
+  expect(voxelLRU.find(voxelBlockCoordinates)).toBeUndefined();
+  expect(pageLRU.find(pageBlockCoordinates)).toBeUndefined();
+
+  expect(delta.voxelCache).toBeDefined();
+  expect(delta.voxelCache!.length).toBe(1);
+  expect(delta.voxelCache![0].data.state).toBe(MapState.Empty);
+  expect(delta.voxelCache![0].data.entry).toBeUndefined();
+
+  expect(delta.pageTable).toBeDefined();
+  expect(delta.pageTable!.length).toBe(1);
+  expect(delta.pageTable![0].data.state).toBe(MapState.Empty);
+  expect(delta.pageTable![0].data.entry).toBeUndefined();
+  expect(delta.pageTable![0].data.location).toBeUndefined();
+});
+
+test('Mark Empty page block with multiple entries', () => {
+  let config = getTestRegistryConfig(
+    Vec3Simple.Vec3(8) as SizeWorld<PageBlockScale>, Vec3Simple.Vec3(8) as SizeWorld<VoxelBlockScale>,
+    Vec3Simple.Vec3(4) as SizeWorld<PageBlockScale>, Vec3Simple.Vec3(1) as SizeWorld<VoxelBlockScale>);
+  let pageVoxelRegistry = createPageVoxelRegistry(config);
+
+  let voxelCoordinates = { x: 0, y: 0, z: 0 } as VoxelCoordinates;
+  let pageBlockCoordinates = config.toPageBlockCoordinates(voxelCoordinates);
+  let voxelBlockCoordinates = config.toVoxelBlockCoordinates(voxelCoordinates);
+  let voxelCoordinates2 = { x: 1, y: 1, z: 1 } as VoxelCoordinates;
+  let pageBlockCoordinates2 = config.toPageBlockCoordinates(voxelCoordinates2);
+  let voxelBlockCoordinates2 = config.toVoxelBlockCoordinates(voxelCoordinates2);
+  let voxelCoordinates3 = { x: 2, y: 2, z: 2 } as VoxelCoordinates;
+  let pageBlockCoordinates3 = config.toPageBlockCoordinates(voxelCoordinates3);
+  let voxelBlockCoordinates3 = config.toVoxelBlockCoordinates(voxelCoordinates3);
+
+  // TODO use real mocking
+  let voxelLRU = pageVoxelRegistry.voxelBlockLRU;
+  let pageLRU = pageVoxelRegistry.pageTableLRU;
+
+  pageVoxelRegistry.registerToCache(pageBlockCoordinates, voxelBlockCoordinates);
+  pageVoxelRegistry.registerToCache(pageBlockCoordinates2, voxelBlockCoordinates2);
+  pageVoxelRegistry.registerToCache(pageBlockCoordinates3, voxelBlockCoordinates3);
+
+  let delta = pageVoxelRegistry.markEmptyPageBlock(pageBlockCoordinates);
+
+  expect(voxelLRU.find(voxelBlockCoordinates)).toBeUndefined();
+  expect(pageLRU.find(pageBlockCoordinates)).toBeUndefined();
+  expect(voxelLRU.find(voxelBlockCoordinates2)).toBeUndefined();
+  expect(pageLRU.find(pageBlockCoordinates2)).toBeUndefined();
+  expect(voxelLRU.find(voxelBlockCoordinates3)).toBeUndefined();
+  expect(pageLRU.find(pageBlockCoordinates3)).toBeUndefined();
+
+  console.log(delta);
+  expect(delta.voxelCache).toBeDefined();
+  expect(delta.voxelCache!.length).toBe(3);
+  expect(delta.voxelCache![0].data.state).toBe(MapState.Empty);
+  expect(delta.voxelCache![0].data.entry).toBeUndefined();
+  expect(delta.voxelCache![1].data.state).toBe(MapState.Empty);
+  expect(delta.voxelCache![1].data.entry).toBeUndefined();
+  expect(delta.voxelCache![2].data.state).toBe(MapState.Empty);
+  expect(delta.voxelCache![2].data.entry).toBeUndefined();
+
+  expect(delta.pageTable).toBeDefined();
+  expect(delta.pageTable!.length).toBe(1);
+  expect(delta.pageTable![0].data.state).toBe(MapState.Empty);
+  expect(delta.pageTable![0].data.entry).toBeUndefined();
+  expect(delta.pageTable![0].data.location).toBeUndefined();
+});
+
+test('Mark Empty Voxel Block', () => {
+  let config = getTestRegistryConfig();
+  let pageVoxelRegistry = createPageVoxelRegistry(config);
+
+  let voxelCoordinates = { x: 0, y: 0, z: 0 } as VoxelCoordinates;
+  let pageBlockCoordinates = config.toPageBlockCoordinates(voxelCoordinates);
+  let voxelBlockCoordinates = config.toVoxelBlockCoordinates(voxelCoordinates);
+
+  // TODO use real mocking
+  let voxelLRU = pageVoxelRegistry.voxelBlockLRU;
+  let pageLRU = pageVoxelRegistry.pageTableLRU;
+
+  pageVoxelRegistry.registerToCache(pageBlockCoordinates, voxelBlockCoordinates);
+
+  let delta = pageVoxelRegistry.markEmptyVoxelBlock(pageBlockCoordinates, voxelBlockCoordinates);
+
+  expect(voxelLRU.find(voxelBlockCoordinates)).toBeUndefined();
+  expect(pageLRU.find(pageBlockCoordinates)).toBeDefined();
+  expect(pageLRU.find(pageBlockCoordinates)!.info.mappedVoxelBlockCoordinates.get(voxelBlockCoordinates)).toBe(
+    MapState.Empty);
+
+  expect(delta.voxelCache).toBeDefined();
+  expect(delta.voxelCache!.length).toBe(1);
+  expect(delta.voxelCache![0].data.state).toBe(MapState.Empty);
+  expect(delta.voxelCache![0].data.entry).toBeUndefined();
+
+  expect(delta.pageTable).toBeDefined();
+  expect(delta.pageTable!.length).toBe(1);
+  expect(delta.pageTable![0].data.state).toBe(MapState.Empty);
+  expect(delta.pageTable![0].data.entry).toBeUndefined();
+  expect(delta.pageTable![0].data.location).toMatchObject(voxelBlockCoordinates);
+});
+
+test('Returns empty for empty blocks', () => {
+  let config = getTestRegistryConfig();
+  let pageVoxelRegistry = createPageVoxelRegistry(config);
+
+  let voxelCoordinates = { x: 0, y: 0, z: 0 } as VoxelCoordinates;
+  let pageBlockCoordinates = config.toPageBlockCoordinates(voxelCoordinates);
+  let voxelBlockCoordinates = config.toVoxelBlockCoordinates(voxelCoordinates);
+
+  // TODO use real mocking
+  pageVoxelRegistry.registerToCache(pageBlockCoordinates, voxelBlockCoordinates);
+  pageVoxelRegistry.markEmptyVoxelBlock(pageBlockCoordinates, voxelBlockCoordinates);
+
+  expect(pageVoxelRegistry.isEmptyVoxelBlock(pageBlockCoordinates, voxelBlockCoordinates)).toBe(true);
+});
+
+test('Returns not empty for not empty blocks', () => {
+  let config = getTestRegistryConfig();
+  let pageVoxelRegistry = createPageVoxelRegistry(config);
+
+  let voxelCoordinates = { x: 0, y: 0, z: 0 } as VoxelCoordinates;
+  let pageBlockCoordinates = config.toPageBlockCoordinates(voxelCoordinates);
+  let voxelBlockCoordinates = config.toVoxelBlockCoordinates(voxelCoordinates);
+
+  // TODO use real mocking
+  pageVoxelRegistry.registerToCache(pageBlockCoordinates, voxelBlockCoordinates);
+
+  expect(pageVoxelRegistry.isEmptyVoxelBlock(pageBlockCoordinates, voxelBlockCoordinates)).toBe(false);
+});
+
 test('Timeit 1 block 100x!', () => {
   let config = getTestRegistryConfig(
     Vec3Simple.Vec3(512) as SizeWorld<PageBlockScale>, Vec3Simple.Vec3(512) as SizeWorld<VoxelBlockScale>,
     Vec3Simple.Vec3(32) as SizeWorld<PageBlockScale>, Vec3Simple.Vec3(32) as SizeWorld<VoxelBlockScale>);
   let pageVoxelRegistry = createPageVoxelRegistry(config);
 
-  let voxelLRU = pageVoxelRegistry.voxelBlockLRU;
-  let pageLRU = pageVoxelRegistry.pageTableLRU;
+  /*
+   *let voxelLRU = pageVoxelRegistry.voxelBlockLRU;
+   *let pageLRU = pageVoxelRegistry.pageTableLRU;
+   */
   /*
    *console.log(voxelLRU.numberFreeBlocks);
    *console.log(pageLRU.numberFreeBlocks);
    */
 
   let calls = 0;
-  console.time('1 block 102400x');
+  /*
+   *console.time('1 block 102400x');
+   */
   let z = 0;
   for (let t = 0; t < 100; t ++) {
     for (let x = 0; x < 32; x ++ ) {
@@ -614,10 +773,12 @@ test('Timeit 1 block 100x!', () => {
       }
     }
   }
-  console.log('made ', calls, 'calls');
-  console.log(voxelLRU.numberRegisteredBlocks);
-  console.log(pageLRU.numberRegisteredBlocks);
-  console.timeEnd('1 block 102400x');
+  /*
+   *console.log('made ', calls, 'calls');
+   *console.log(voxelLRU.numberRegisteredBlocks);
+   *console.log(pageLRU.numberRegisteredBlocks);
+   *console.timeEnd('1 block 102400x');
+   */
 });
 
 test('Timeit 100 separate blocks!', () => {
@@ -626,15 +787,19 @@ test('Timeit 100 separate blocks!', () => {
     Vec3Simple.Vec3(32) as SizeWorld<PageBlockScale>, Vec3Simple.Vec3(32) as SizeWorld<VoxelBlockScale>);
   let pageVoxelRegistry = createPageVoxelRegistry(config);
 
-  let voxelLRU = pageVoxelRegistry.voxelBlockLRU;
-  let pageLRU = pageVoxelRegistry.pageTableLRU;
+  /*
+   *let voxelLRU = pageVoxelRegistry.voxelBlockLRU;
+   *let pageLRU = pageVoxelRegistry.pageTableLRU;
+   */
   /*
    *console.log(voxelLRU.numberFreeBlocks);
    *console.log(pageLRU.numberFreeBlocks);
    */
 
   let calls = 0;
-  console.time('102400 block 1x');
+  /*
+   *console.time('102400 block 1x');
+   */
   for (let x = 0; x < 512 * 32; x += 512 ) {
     for (let y = 0; y < 512 * 32; y += 512 ) {
       for (let z = 0; z < 512 * 100; z += 512 ) {
@@ -645,8 +810,10 @@ test('Timeit 100 separate blocks!', () => {
       }
     }
   }
-  console.log('made ', calls, 'calls');
-  console.log(voxelLRU.numberRegisteredBlocks);
-  console.log(pageLRU.numberRegisteredBlocks);
-  console.timeEnd('102400 block 1x');
+  /*
+   *console.log('made ', calls, 'calls');
+   *console.log(voxelLRU.numberRegisteredBlocks);
+   *console.log(pageLRU.numberRegisteredBlocks);
+   *console.timeEnd('102400 block 1x');
+   */
 });

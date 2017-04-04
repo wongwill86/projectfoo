@@ -12,7 +12,7 @@ export interface SingleCacheDelta<S extends Scale> {
 export interface VoxelCacheDelta extends SingleCacheDelta<VoxelBlockScale> {
   data: {
     state: MapState;
-    entry?: VoxelBlockCoordinates; // defined only when we are mapping, undefined when unmapping
+    entry?: VoxelBlockCoordinates; // defined only when we are mapping
   };
 }
 
